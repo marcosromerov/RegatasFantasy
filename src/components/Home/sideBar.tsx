@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { router, useRouter } from 'expo-router';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,17 +12,24 @@ interface SidebarProps {
 const { width } = Dimensions.get('window');
 
 export const Sidebar = ({ isOpen, onClose, onLogout }: SidebarProps) => {
+  const router = useRouter(); // 2. Inicializarlo
+
   if (!isOpen) return null;
 
   const menuItems = [
-    { name: 'Mi Equipo', icon: 'users-cog' },
-    { name: 'Ranking', icon: 'chart-bar' },
-    {name: 'Goleadores', icon: 'trophy'},
-    { name: 'Reglamento', icon: 'book-open' },
-    { name: 'Configuración', icon: 'cog' },
+   { name: 'Mi Equipo', icon: 'users-cog', path: '/miEquipo' }, 
+    { name: 'Ranking', icon: 'chart-bar', path: '/ranking' },
+    { name: 'Goleadores', icon: 'trophy', path: '/goleadores' },
+    { name: 'Reglamento', icon: 'book-open', path: '/reglamento' },
+    { name: 'Configuración', icon: 'cog', path: '/config' },
   ];
 
-  return (
+ const handleNavigation = (path: string) => {
+    onClose(); // Cerramos el sidebar
+    router.push(path); // Navegamos
+  };
+
+return (
     <>
       <TouchableOpacity 
         style={styles.overlay} 
@@ -43,7 +51,11 @@ export const Sidebar = ({ isOpen, onClose, onLogout }: SidebarProps) => {
         {/* Lista de Navegación */}
         <View style={styles.menuList}>
           {menuItems.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.menuItem}>
+            <TouchableOpacity 
+              key={index} 
+              style={styles.menuItem}
+              onPress={() => handleNavigation(item.path)} // 4. Conectar la función
+            >
               <View style={styles.iconContainer}>
                 <FontAwesome5 name={item.icon} size={18} color="#FFEA00" />
               </View>

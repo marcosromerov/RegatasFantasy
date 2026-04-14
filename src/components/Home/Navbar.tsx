@@ -13,7 +13,7 @@ export const Navbar = ({ userName, onMenuPress }: NavbarProps) => (
     </TouchableOpacity>
     <View style={styles.navTitleContainer}>
       <Text style={styles.navTitle}>Bienvenido</Text>
-      <Text style={styles.navTitleName}>{userName}</Text>
+      <Text style={styles.navTitleName}>{userName|| "Rugbier"}</Text>
     </View>
     <Image
       source={require('../../../assets/images/crbvjpg.jpg')}

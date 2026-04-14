@@ -53,7 +53,7 @@ export const InfoSection = ({ points, money, proximaFecha, onCalendarPress }: In
 
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>FECHA</Text>
-          <Text style={styles.statValue}>#{proximaFecha}</Text>
+          <Text style={styles.statValue}>{proximaFecha}</Text>
         </View>
       </View>
 

@@ -14,6 +14,7 @@ import { FIXTURE_DATA } from '../../src/components/Home/CalendarModal';
 // 2. Lógica (Hooks y Constantes)
 import { useHomeData } from '../../src/hooks/useHomeData';
 import { CalendarModal } from '@/src/components/Home/CalendarModal';
+import { CustomAlert } from '@/src/components/Home/CustomAlert';
 
 
 const PLAYER_POSITIONS = [
@@ -39,6 +40,7 @@ export default function Home() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPosName, setSelectedPosName] = useState("");
   const [calendarVisible, setCalendarVisible] = useState(false);
+ 
 
   const { 
     userName, 
@@ -49,7 +51,9 @@ export default function Home() {
     handlePlayerSelect, 
     handleConfirmSelection,
     handleSignOut,
-    handleConfirmar
+    handleConfirmar,
+    alertConfig,
+    closeAlert,
   } = useHomeData(PLAYER_POSITIONS);
 
 const proxima = FIXTURE_DATA.find(f => f.estado === 'pendiente');
@@ -121,6 +125,13 @@ const numeroFecha = proxima ? proxima.fecha.split(' ')[1] : "5";
     visible={calendarVisible} 
     onClose={() => setCalendarVisible(false)} 
 />
+
+      <CustomAlert 
+      visible={alertConfig.visible}
+      title={alertConfig.title}
+      message={alertConfig.message}
+      onClose={closeAlert}
+    />
     </SafeAreaView>
   );
 }
