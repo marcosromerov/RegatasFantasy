@@ -21,7 +21,7 @@ export const Sidebar = ({ isOpen, onClose, onLogout }: SidebarProps) => {
     { name: 'Ranking', icon: 'chart-bar', path: '/ranking' },
     { name: 'Goleadores', icon: 'trophy', path: '/goleadores' },
     { name: 'Reglamento', icon: 'book-open', path: '/reglamento' },
-    { name: 'Configuración', icon: 'cog', path: '/config' },
+    { name: 'Configuración', icon: 'cog', path: '/configuracion' },
   ];
 
  const handleNavigation = (path: string) => {
