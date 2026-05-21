@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
 import { supabase } from '../api/supabase'; // Ajustá el path según tu carpeta
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { PageHeader } from '../src/components/PageHeader';
 
 const POWER_UPS = [
   
@@ -76,20 +75,7 @@ setJugadores(ordenados);
 
 return (
   <SafeAreaView style={styles.container}>
-    {/* 1. HEADER FIXED */}
-    <View style={styles.header}>
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => router.back()} // Navega a la pantalla anterior
-      >
-        <Ionicons name="chevron-back" size={28} color="#FFEA00" />
-      </TouchableOpacity>
-      
-      <Text style={styles.title}>MI XV INICIAL</Text>
-      
-      {/* View invisible para equilibrar el flex y que el título quede centrado */}
-      <View style={{ width: 28 }} /> 
-    </View>
+    <PageHeader title="MI XV INICIAL" />
 
     {/* 2. SECCIÓN DE POTENCIADORES (Asegurate de que esto NO esté dentro de otro if) */}
     <View style={styles.powersSection}>

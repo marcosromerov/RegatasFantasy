@@ -9,7 +9,7 @@ import { InfoSection } from '../../src/components/Home/InfoSection';
 import { Cancha } from '../../src/components/Home/Cancha';
 import { PlayerSelectorModal } from '../../src/components/Home/PLayerSelectionModal';
 import { MainFooter } from '../../src/components/Home/Footer'; // Cambié el nombre para evitar conflictos
-import { FIXTURE_DATA } from '../../src/components/Home/CalendarModal';
+import { FIXTURE_DATA, getProximoPartido } from '../../src/components/Home/CalendarModal';
 
 // 2. Lógica (Hooks y Constantes)
 import { useHomeData } from '../../src/hooks/useHomeData';
@@ -28,10 +28,10 @@ const PLAYER_POSITIONS = [
   { id: 8, position: 'Octavo', number: 8, selected: false },
   { id: 9, position: 'Medio Scrum', number: 9, selected: false },
   { id: 10, position: 'Apertura', number: 10, selected: false },
-  { id: 11, position: 'Wing Izquierdo', number: 11, selected: false },
+  { id: 11, position: 'Wing', number: 11, selected: false },
   { id: 12, position: 'Centro', number: 12, selected: false },
   { id: 13, position: 'Centro', number: 13, selected: false },
-  { id: 14, position: 'Wing Derecho', number: 14, selected: false },
+  { id: 14, position: 'Wing', number: 14, selected: false },
   { id: 15, position: 'Fullback', number: 15, selected: false },
 ];
 
@@ -56,8 +56,10 @@ export default function Home() {
     closeAlert,
   } = useHomeData(PLAYER_POSITIONS);
 
-const proxima = FIXTURE_DATA.find(f => f.estado === 'pendiente');
-const numeroFecha = proxima ? proxima.fecha.split(' ')[1] : "5";
+// Próximo partido según la fecha de hoy (no según el campo `estado` manual)
+const proxima = getProximoPartido();
+const numeroFecha = proxima ? proxima.fecha.split(' ')[1] : "-";
+const proximoRival = proxima ? proxima.rival : null;
 
   const onOpenModal = async (id: number) => {
     const pos = players.find(p => p.id === id);
@@ -92,11 +94,12 @@ const numeroFecha = proxima ? proxima.fecha.split(' ')[1] : "5";
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <InfoSection 
-          points={0} 
-          money={200} 
+        <InfoSection
+          points={0}
+          money={200}
           onCalendarPress={() => setCalendarVisible(true)}
           proximaFecha={numeroFecha}
+          proximoRival={proximoRival}
         />
 
         <Cancha 

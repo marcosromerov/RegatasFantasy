@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { router, useRouter } from 'expo-router';
+import { useUserRole } from '../../hooks/useUserRole';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,16 +14,22 @@ const { width } = Dimensions.get('window');
 
 export const Sidebar = ({ isOpen, onClose, onLogout }: SidebarProps) => {
   const router = useRouter(); // 2. Inicializarlo
+  const { isAdmin } = useUserRole();
 
   if (!isOpen) return null;
 
-  const menuItems = [
-   { name: 'Mi Equipo', icon: 'users-cog', path: '/miEquipo' }, 
+  const baseMenuItems = [
+   { name: 'Mi Equipo', icon: 'users-cog', path: '/miEquipo' },
     { name: 'Ranking', icon: 'chart-bar', path: '/ranking' },
     { name: 'Goleadores', icon: 'trophy', path: '/goleadores' },
     { name: 'Reglamento', icon: 'book-open', path: '/reglamento' },
     { name: 'Configuración', icon: 'cog', path: '/configuracion' },
   ];
+
+  // El link "Admin" solo aparece si usuarios.Role === 'admin'.
+  const menuItems = isAdmin
+    ? [...baseMenuItems, { name: 'Admin', icon: 'shield-alt', path: '/admin' }]
+    : baseMenuItems;
 
  const handleNavigation = (path: string) => {
     onClose(); // Cerramos el sidebar

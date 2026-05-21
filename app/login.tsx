@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, Linking } from 'react-native';
 import { supabase } from '../api/supabase'; // Ajustá la ruta según tu carpeta api
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+// Mismo número que en register.tsx — si cambia, actualizar en ambos.
+const ADMIN_WHATSAPP = '5491122492885';
+
+const buildWhatsappUrl = (email: string) => {
+  const msg = `Hola! Soy ${email} y mi cuenta de Regatas Fantasy todavía no está aprobada.`;
+  return `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+};
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -11,7 +19,7 @@ export default function Login() {
 
   const handleLogin = async () => {
   console.log("Intentando conectar con Supabase...");
-  
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email: email,
     password: password,
@@ -20,10 +28,54 @@ export default function Login() {
   if (error) {
     console.error("❌ Fallo el login:", error.message);
     Alert.alert("Error", error.message);
-  } else {
-    console.log("✅ Login exitoso! Usuario:", data.user?.email);
-    router.replace('/'); 
+    return;
   }
+
+  if (!data.user) {
+    Alert.alert("Error", "No se pudo iniciar sesión.");
+    return;
+  }
+
+  // Verificar si el usuario está aprobado (o si es admin → bypass).
+  const { data: perfil, error: perfilError } = await supabase
+    .from('usuarios')
+    .select('aprobado, Role')
+    .eq('id', data.user.id)
+    .maybeSingle();
+
+  if (perfilError) {
+    console.error("Error leyendo perfil:", perfilError.message);
+    Alert.alert("Error", "No se pudo validar tu cuenta.");
+    await supabase.auth.signOut();
+    return;
+  }
+
+  const esAdmin = perfil?.Role === 'admin';
+
+  if (!perfil || (!perfil.aprobado && !esAdmin)) {
+    // No aprobado → cerramos sesión y damos opción de avisar por WhatsApp.
+    await supabase.auth.signOut();
+    Alert.alert(
+      "Cuenta pendiente de aprobación",
+      "Tu cuenta todavía no fue aprobada por el admin. Avisale por WhatsApp así te habilita.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Avisar por WhatsApp",
+          onPress: () => {
+            const url = buildWhatsappUrl(email);
+            Linking.openURL(url).catch(() =>
+              Alert.alert("No se pudo abrir WhatsApp", "Avisá manualmente al admin.")
+            );
+          },
+        },
+      ]
+    );
+    return;
+  }
+
+  console.log("✅ Login exitoso! Usuario:", data.user?.email);
+  router.replace('/');
 };
 
   const handleRegister = () => {

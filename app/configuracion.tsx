@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Navbar } from '../src/components/Home/Navbar';
-import { Sidebar } from '../src/components/Home/sideBar';
+import { PageHeader } from '../src/components/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../api/supabase';
 import { useRouter } from 'expo-router';
 
 export default function Configuracion() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -112,7 +110,7 @@ export default function Configuracion() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <Navbar userName="Configuración" onMenuPress={() => setSidebarOpen(true)} />
+        <PageHeader title="CONFIGURACIÓN" />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#FFEA00" />
         </View>
@@ -122,18 +120,9 @@ export default function Configuracion() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Navbar 
-        userName="Configuración" 
-        onMenuPress={() => setSidebarOpen(true)} 
-      />
+      <PageHeader title="CONFIGURACIÓN" />
 
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
-        onLogout={handleLogout} 
-      />
-
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}

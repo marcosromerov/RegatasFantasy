@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Navbar } from '../src/components/Home/Navbar';
-import { Sidebar } from '../src/components/Home/sideBar';
+import { PageHeader } from '../src/components/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface Rule {
@@ -13,124 +12,141 @@ interface Rule {
 }
 
 export default function Reglamento() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
 
-  const basicRules: Rule[] = [
+  // 1) Cómo armar el equipo
+  const teamRules: Rule[] = [
     {
-      id: 'equipo',
-      title: 'Formación del Equipo',
-      description: 'Cada equipo Fantasy debe estar compuesto por 15 jugadores: 8 Delanteros y 7 Backs. Debes respetar esta formación para que tu equipo sea válido.',
-      points: '15 jugadores totales'
+      id: 'plantel',
+      title: 'Plantel: 15 jugadores + 1 Staff',
+      description:
+        'Tu equipo se forma con 15 jugadores titulares (8 forwards y 7 backs) más 1 Staff. El Staff es un bloque de entrenadores que también suma puntos según los resultados de sus partidos. En total, 16 elegibles.',
+      points: '15 + 1',
     },
     {
       id: 'posiciones',
-      title: 'Posiciones de Juego',
-      description: 'Delanteros (1-8): Pilares, Hooker, Segunda Línea, Flanquistas y Número 8. Backs (9-15): Medio Scrum, Medio Apertura, Centros, Alas y Fullback.',
-      points: '8 Delanteros, 7 Backs'
+      title: 'Posiciones obligatorias',
+      description:
+        'Forwards (1-8): Pilar Izquierdo, Hooker, Pilar Derecho, dos Segundas Líneas, dos Alas y un Octavo. Backs (9-15): Medio Scrum, Apertura, dos Centros, dos Wings y Fullback. Cada posición debe estar cubierta para que el equipo sea válido.',
+      points: '8 forwards / 7 backs',
     },
     {
-      id: 'puntos-try',
-      title: 'Try (Ensayo)',
-      description: 'Anotar un ensayo vale 5 puntos. Es la forma más importante de anotar en el rugby.',
-      points: '+5 puntos'
+      id: 'staff',
+      title: '¿Qué es el Staff?',
+      description:
+        'El Staff es un grupo de entrenadores asociado a un club. Elegís uno solo por fecha. Cada Staff juega 2 partidos por fecha (los de su club) y suma puntos según los resultados de esos 2 partidos.',
+      points: '1 slot',
     },
-    {
-      id: 'puntos-conversion',
-      title: 'Conversión',
-      description: 'Después de un try, el equipo puede realizar una conversión (patada) desde el lugar del try. Vale 2 puntos adicionales.',
-      points: '+2 puntos'
-    },
-    {
-      id: 'puntos-penalti',
-      title: 'Penal (Penalti)',
-      description: 'Un penal anotado da 3 puntos al equipo. Se ejecuta por infracciones del equipo contrario.',
-      points: '+3 puntos'
-    },
-    {
-      id: 'puntos-drop',
-      title: 'Drop Goal (Penal de Campo)',
-      description: 'Un drop goal durante el juego vale 1 punto. Es menos común pero válido.',
-      points: '+1 punto'
-    }
   ];
 
-  const scoringRules: Rule[] = [
+  // 2) Ventana de edición
+  const editRules: Rule[] = [
     {
-      id: 'jugador-tries',
-      title: 'Tries Anotados por Jugador',
-      description: 'Cada try anotado por tu jugador suma puntos a tu equipo Fantasy.',
-      points: '5 puntos por try'
+      id: 'ventana',
+      title: 'Cuándo podés editar el equipo',
+      description:
+        'El equipo se puede modificar entre el miércoles 23:59 y el viernes 23:59 (hora de Argentina). Desde el viernes 23:59 hasta el miércoles 23:59 el equipo queda bloqueado para esa fecha.',
+      points: 'Mié 23:59 → Vie 23:59',
     },
     {
-      id: 'conversiones',
-      title: 'Conversiones Exitosas',
-      description: 'Las conversiones ejecutadas por tu jugador cuentan para los puntos Fantasy.',
-      points: '2 puntos por conversión'
+      id: 'persistencia',
+      title: 'El equipo se guarda por fecha',
+      description:
+        'Cada fecha del torneo guarda tu plantel elegido. Si no editás antes del cierre, queda el último equipo confirmado. Podés volver a verlo en cualquier momento desde tu perfil.',
     },
-    {
-      id: 'penales',
-      title: 'Penales Anotados',
-      description: 'Los penales anotados por tu pateador suman puntos a tu equipo Fantasy.',
-      points: '3 puntos por penal'
-    },
-    {
-      id: 'asistencias',
-      title: 'Asistencias',
-      description: 'El jugador que hace la asistencia para un try recibe puntos adicionales.',
-      points: '+1 punto por asistencia'
-    },
-    {
-      id: 'tackles',
-      title: 'Tackles (Derribos)',
-      description: 'Los tackles efectivos de los defensores suman puntos a tu equipo Fantasy.',
-      points: '+1 punto por tackle'
-    },
-    {
-      id: 'turnover',
-      title: 'Turnovers',
-      description: 'Recuperar el balón (robo de balón, knock-on) suma puntos para tu equipo.',
-      points: '+2 puntos por turnover'
-    }
   ];
 
-  const powerUpRules: Rule[] = [
+  // 3) Puntuación de jugadores
+  const playerScoringRules: Rule[] = [
     {
-      id: 'capitan',
-      title: 'Capitán',
-      description: 'El capitán multiplica por 2 los puntos que obtiene durante el partido.',
-      points: '2x de puntos'
+      id: 'puntos-jugador',
+      title: 'Puntos por jugador',
+      description:
+        'Cada jugador recibe un puntaje total por fecha, cargado en base a su rendimiento real (tries, conversiones, penales, tackles, robos, etc.). Vos no ves el desglose: ves el total de la fecha y se suma a tu equipo.',
+      points: 'Carga por fecha',
     },
     {
-      id: 'triple',
-      title: 'Triple Capitán',
-      description: 'Boost especial que multiplica por 3 los puntos de un jugador seleccionado.',
-      points: '3x de puntos'
+      id: 'suma-equipo',
+      title: 'Cómo se calculan los puntos de tu equipo',
+      description:
+        'Los puntos de tu equipo en una fecha son la suma de los puntos de los 15 jugadores titulares + los puntos del Staff de esa fecha.',
+      points: 'Σ jugadores + Staff',
+    },
+  ];
+
+  // 4) Puntuación del Staff (los números que vos definiste)
+  const staffScoringRules: Rule[] = [
+    {
+      id: 'staff-gg',
+      title: 'Gana sus 2 partidos',
+      description:
+        'El Staff suma 10 puntos cuando los 2 partidos de su club terminan en victoria.',
+      points: '10 pts',
     },
     {
-      id: 'forward',
-      title: 'Forward Power',
-      description: 'Aumenta un 25% los puntos de los delanteros en la alineación.',
-      points: '+25% Delanteros'
+      id: 'staff-ge',
+      title: 'Gana uno, empata el otro',
+      description: 'Una victoria y un empate suman 7 puntos.',
+      points: '7 pts',
     },
     {
-      id: 'back',
-      title: 'Back Potenciador',
-      description: 'Aumenta un 25% los puntos de los backs en la alineación.',
-      points: '+25% Backs'
+      id: 'staff-ee',
+      title: 'Empata los 2 partidos',
+      description: 'Dos empates suman 5 puntos.',
+      points: '5 pts',
     },
     {
-      id: 'kick',
-      title: 'Kick King',
-      description: 'El pateador obtiene +1 punto por cada tiro de penal o conversión.',
-      points: '+1 extra por patada'
+      id: 'staff-gp',
+      title: 'Gana uno, pierde el otro',
+      description: 'Una victoria y una derrota suman 4 puntos.',
+      points: '4 pts',
     },
     {
-      id: 'defensa',
-      title: 'Def Wall',
-      description: 'Los defensores reciben +1 punto por cada tackle o turnover.',
-      points: '+1 extra en defensa'
-    }
+      id: 'staff-ep',
+      title: 'Empata uno, pierde el otro',
+      description: 'Un empate y una derrota suman 2 puntos.',
+      points: '2 pts',
+    },
+    {
+      id: 'staff-pp',
+      title: 'Pierde los 2 partidos',
+      description: 'Dos derrotas no suman puntos.',
+      points: '0 pts',
+    },
+  ];
+
+  // 5) Ranking y equipo de la fecha
+  const rankingRules: Rule[] = [
+    {
+      id: 'ranking',
+      title: 'Ranking general',
+      description:
+        'El ranking se arma con la suma de tus puntos en todas las fechas del torneo. El podio (1°, 2° y 3°) lo ves arriba; abajo, la tabla completa con todos los participantes.',
+    },
+    {
+      id: 'equipo-fecha',
+      title: 'Equipo de la Fecha',
+      description:
+        'Los 15 jugadores con más puntos de cada fecha forman el "Equipo de la Fecha". No depende de qué jugadores elegiste vos: es el top 15 absoluto.',
+    },
+  ];
+
+  // 6) Próximamente
+  const upcomingRules: Rule[] = [
+    {
+      id: 'potenciadores',
+      title: 'Potenciadores',
+      description:
+        'Pronto vas a poder activar potenciadores (capitán, multiplicadores, etc.) para multiplicar los puntos de un jugador en una fecha puntual. Las reglas exactas se publican al lanzar la función.',
+      points: 'Próximamente',
+    },
+    {
+      id: 'goleadores',
+      title: 'Tabla de Goleadores',
+      description:
+        'Más adelante vas a poder ver el ranking de tries y puntos con el pie de todo el torneo, jugador por jugador. Por ahora la carga es manual por fecha.',
+      points: 'Próximamente',
+    },
   ];
 
   const RuleCard = ({ rule, isExpanded }: { rule: Rule; isExpanded: boolean }) => (
@@ -141,10 +157,10 @@ export default function Reglamento() {
     >
       <View style={styles.ruleHeader}>
         <View style={styles.ruleTitle}>
-          <MaterialCommunityIcons 
-            name={isExpanded ? 'chevron-down' : 'chevron-right'} 
-            size={24} 
-            color="#FFEA00" 
+          <MaterialCommunityIcons
+            name={isExpanded ? 'chevron-down' : 'chevron-right'}
+            size={24}
+            color="#FFEA00"
           />
           <Text style={styles.ruleName}>{rule.title}</Text>
         </View>
@@ -154,10 +170,8 @@ export default function Reglamento() {
           </View>
         )}
       </View>
-      
-      {isExpanded && (
-        <Text style={styles.ruleDescription}>{rule.description}</Text>
-      )}
+
+      {isExpanded && <Text style={styles.ruleDescription}>{rule.description}</Text>}
     </TouchableOpacity>
   );
 
@@ -170,18 +184,9 @@ export default function Reglamento() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Navbar 
-        userName="Reglamento" 
-        onMenuPress={() => setSidebarOpen(true)} 
-      />
+      <PageHeader title="REGLAMENTO" />
 
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
-        onLogout={() => {}} 
-      />
-
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
@@ -189,45 +194,63 @@ export default function Reglamento() {
         {/* INTRO */}
         <View style={styles.introCard}>
           <MaterialCommunityIcons name="rugby" size={40} color="#FFEA00" />
-          <Text style={styles.introTitle}>Bienvenido a Rugby Fantasy</Text>
+          <Text style={styles.introTitle}>Cómo se juega</Text>
           <Text style={styles.introText}>
-            Conoce las reglas del juego y cómo obtener puntos con tu equipo
+            Armás tu equipo con 15 jugadores y 1 Staff. Cada fecha sumás los puntos de tu plantel.
+            Quien más puntos junta a lo largo del torneo gana.
           </Text>
         </View>
 
-        {/* REGLAS BÁSICAS */}
-        <SectionHeader title="Reglas Básicas" icon="book-outline" />
+        {/* 1. ARMÁ TU EQUIPO */}
+        <SectionHeader title="Armá tu equipo" icon="account-group-outline" />
         <View style={styles.rulesContainer}>
-          {basicRules.map((rule) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              isExpanded={expandedRule === rule.id}
-            />
+          {teamRules.map((rule) => (
+            <RuleCard key={rule.id} rule={rule} isExpanded={expandedRule === rule.id} />
           ))}
         </View>
 
-        {/* SISTEMA DE PUNTUACIÓN */}
-        <SectionHeader title="Sistema de Puntuación" icon="star-outline" />
+        {/* 2. VENTANA DE EDICIÓN */}
+        <SectionHeader title="Cuándo podés editar" icon="calendar-clock-outline" />
         <View style={styles.rulesContainer}>
-          {scoringRules.map((rule) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              isExpanded={expandedRule === rule.id}
-            />
+          {editRules.map((rule) => (
+            <RuleCard key={rule.id} rule={rule} isExpanded={expandedRule === rule.id} />
           ))}
         </View>
 
-        {/* POWER UPS */}
-        <SectionHeader title="Power-Ups (Potenciadores)" icon="lightning-bolt" />
+        {/* 3. PUNTOS DE JUGADORES */}
+        <SectionHeader title="Puntos de los jugadores" icon="star-outline" />
         <View style={styles.rulesContainer}>
-          {powerUpRules.map((rule) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              isExpanded={expandedRule === rule.id}
-            />
+          {playerScoringRules.map((rule) => (
+            <RuleCard key={rule.id} rule={rule} isExpanded={expandedRule === rule.id} />
+          ))}
+        </View>
+
+        {/* 4. PUNTOS DEL STAFF */}
+        <SectionHeader title="Puntos del Staff" icon="whistle-outline" />
+        <View style={styles.staffTableNote}>
+          <Text style={styles.staffNoteText}>
+            El Staff suma según los 2 resultados de su club en la fecha:
+          </Text>
+        </View>
+        <View style={styles.rulesContainer}>
+          {staffScoringRules.map((rule) => (
+            <RuleCard key={rule.id} rule={rule} isExpanded={expandedRule === rule.id} />
+          ))}
+        </View>
+
+        {/* 5. RANKING */}
+        <SectionHeader title="Ranking y Equipo de la Fecha" icon="trophy-outline" />
+        <View style={styles.rulesContainer}>
+          {rankingRules.map((rule) => (
+            <RuleCard key={rule.id} rule={rule} isExpanded={expandedRule === rule.id} />
+          ))}
+        </View>
+
+        {/* 6. PRÓXIMAMENTE */}
+        <SectionHeader title="Próximamente" icon="rocket-launch-outline" />
+        <View style={styles.rulesContainer}>
+          {upcomingRules.map((rule) => (
+            <RuleCard key={rule.id} rule={rule} isExpanded={expandedRule === rule.id} />
           ))}
         </View>
 
@@ -235,19 +258,22 @@ export default function Reglamento() {
         <View style={styles.tipsCard}>
           <View style={styles.tipHeader}>
             <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color="#FFEA00" />
-            <Text style={styles.tipTitle}>Consejos Estratégicos</Text>
+            <Text style={styles.tipTitle}>Consejos rápidos</Text>
           </View>
           <View style={styles.tipItem}>
-            <Text style={styles.tipText}>• Selecciona siempre un Capitán que juegue de titular</Text>
+            <Text style={styles.tipText}>
+              • Confirmá tu equipo antes del viernes 23:59 o no entra en la fecha.
+            </Text>
           </View>
           <View style={styles.tipItem}>
-            <Text style={styles.tipText}>• Usa tus Power-Ups en jugadores clave del partido</Text>
+            <Text style={styles.tipText}>
+              • Elegí un Staff de un club con buen calendario esa fecha — vale hasta 10 puntos.
+            </Text>
           </View>
           <View style={styles.tipItem}>
-            <Text style={styles.tipText}>• Balancea tu equipo entre ataque (tries) y defensa</Text>
-          </View>
-          <View style={styles.tipItem}>
-            <Text style={styles.tipText}>• Revisa el estado físico de los jugadores antes del partido</Text>
+            <Text style={styles.tipText}>
+              • Mirá el Equipo de la Fecha para detectar jugadores en alza.
+            </Text>
           </View>
         </View>
 
@@ -313,6 +339,17 @@ const styles = StyleSheet.create({
     color: '#FFEA00',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+
+  // STAFF NOTE
+  staffTableNote: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  staffNoteText: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontStyle: 'italic',
   },
 
   // RULES CONTAINER

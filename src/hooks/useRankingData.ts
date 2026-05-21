@@ -29,7 +29,8 @@ export const useRankingData = () => {
       // Traer los usuarios con sus puntos
       const { data, error: fetchError } = await supabase
         .from('usuarios')
-        .select('id, nombre, apellido, email, puntos');
+        .select('id, nombre, apellido, email, puntos')
+        .order('puntos', { ascending: false, nullsFirst: false });
 
       if (fetchError) {
         throw fetchError;

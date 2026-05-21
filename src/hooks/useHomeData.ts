@@ -99,14 +99,19 @@ useEffect(() => {
   try {
     const { data, error } = await supabase
       .from('jugadores')
-      .select('id, nombre, apellido, posicion, estrellas,equipoActual')
+      .select('id, nombre, apellido, posicion, equipoActual')
       .eq('posicion', playerPos.position);
 
-    if (!error) {
+    if (error) {
+      console.error('[handlePlayerSelect] Supabase error:', error.message, error.details);
+      setFilteredPlayers([]);
+    } else {
+      console.log(`[handlePlayerSelect] posicion="${playerPos.position}" → ${data?.length ?? 0} jugadores`);
       setFilteredPlayers(data || []);
     }
   } catch (err) {
-    console.error('Error fetching players:', err);
+    console.error('[handlePlayerSelect] exception:', err);
+    setFilteredPlayers([]);
   } finally {
     setLoadingModal(false);   // Apagamos el spinner
   }

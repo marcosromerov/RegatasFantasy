@@ -2,15 +2,18 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { getClubLogo, getClubInitials } from '../../constants/clubLogos';
 
 interface InfoSectionProps {
   points: number;
   money: number;
   proximaFecha: string;  // Agregué money de vuelta para que no tire error el TS
+  proximoRival: string | null; // Nombre del rival del próximo partido (null = temporada terminada)
   onCalendarPress: () => void;
 }
 
-export const InfoSection = ({ points, money, proximaFecha, onCalendarPress }: InfoSectionProps) => {
+export const InfoSection = ({ points, money, proximaFecha, proximoRival, onCalendarPress }: InfoSectionProps) => {
+  const rivalLogo = getClubLogo(proximoRival);
  return (
     <View style={styles.container}>
       <View style={styles.bgDecoration} />
@@ -60,16 +63,20 @@ export const InfoSection = ({ points, money, proximaFecha, onCalendarPress }: In
       {/* NUEVA SECCIÓN: PRÓXIMO RIVAL */}
       <View style={styles.nextMatchContainer}>
         <Text style={styles.nextMatchLabel}>PRÓXIMO RIVAL</Text>
-        <View style={styles.rivalRow}>
-          <View style={styles.logoContainer}>
-            <Image 
-              source={require('../../../assets/images/cuba.png')} 
-              style={styles.rivalLogo}
-              resizeMode="contain"
-            />
+        {proximoRival ? (
+          <View style={styles.rivalRow}>
+            <View style={styles.logoContainer}>
+              {rivalLogo ? (
+                <Image source={rivalLogo} style={styles.rivalLogo} resizeMode="contain" />
+              ) : (
+                <Text style={styles.rivalInitials}>{getClubInitials(proximoRival)}</Text>
+              )}
+            </View>
+            <Text style={styles.rivalName}>{proximoRival}</Text>
           </View>
-          <Text style={styles.rivalName}>CUBA</Text>
-        </View>
+        ) : (
+          <Text style={styles.rivalName}>Temporada finalizada</Text>
+        )}
       </View>
 
     </View>
@@ -182,25 +189,20 @@ const styles = StyleSheet.create({
   logoContainer: {
   width: 52,
   height: 52,
-  backgroundColor: '#fff', // Fondo blanco de base por si la imagen tarda en cargar
-  borderRadius: 8,        // Bordes apenas redondeados para un look moderno
+  backgroundColor: 'transparent', // Sin fondo: el logo va directo sobre el azul
   justifyContent: 'center',
   alignItems: 'center',
   marginRight: 12,
-  
-  // Sombra suave para que parezca una ficha apoyada
-  elevation: 4,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.2,
-  shadowRadius: 3,
-  
-  // Para que la imagen no se escape de las esquinas redondeadas
-  overflow: 'hidden', 
+  overflow: 'hidden',
 },
 
 rivalLogo: {
   width: '100%', // Que ocupe todo el cuadrado
   height: '100%',
+},
+rivalInitials: {
+  color: '#283a82',
+  fontWeight: '900',
+  fontSize: 18,
 },
 });

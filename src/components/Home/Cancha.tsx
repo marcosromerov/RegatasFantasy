@@ -1,15 +1,18 @@
 import React from 'react';
 import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
 import { PlayerButton } from './PLayerButton';
+import { StaffCard } from './StaffCard';
 import { PlayerPosition } from '../../types/fantasy';
 
 interface CanchaProps {
   players: PlayerPosition[];
   onPlayerPress: (id: number) => void;
   onConfirm: () => void; // <--- AGREGÁ ESTA LÍNEA
+  staffName?: string | null;
+  onStaffPress?: () => void;
 }
 
-export const Cancha = ({ players, onPlayerPress ,onConfirm}: CanchaProps) => {
+export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPress }: CanchaProps) => {
   return (
     <ImageBackground
       source={require('../../../assets/images/Gemini_Generated_Image_ghyme7ghyme7ghym.png')}
@@ -75,16 +78,16 @@ export const Cancha = ({ players, onPlayerPress ,onConfirm}: CanchaProps) => {
   </View>
 </View>
 
-{/* Fila Final: Wing Izq (11), Fullback (15) y Wing Der (14) */}
+{/* Fila Final: Wing (11), Fullback (15) y Wing (14) */}
 <View style={styles.row}>
   <View style={styles.positionsRowBacksWide}>
-    {/* Wing Izquierdo */}
+    {/* Wing (slot izquierdo en pantalla) */}
     <PlayerButton player={players[10]} onSelect={onPlayerPress} />
-    
-    {/* Fullback - Está en el índice 14 del array original */}
+
+    {/* Fullback - índice 14 del array */}
     <PlayerButton player={players[14]} onSelect={onPlayerPress} />
-    
-    {/* Wing Derecho - Está en el índice 13 del array original */}
+
+    {/* Wing (slot derecho en pantalla) */}
     <PlayerButton player={players[13]} onSelect={onPlayerPress} />
   </View>
 </View>
@@ -99,8 +102,10 @@ export const Cancha = ({ players, onPlayerPress ,onConfirm}: CanchaProps) => {
       </View>
 
       <View style={styles.buttonWrapper}>
-      <TouchableOpacity 
-        style={styles.confirmButton} 
+      <StaffCard staffName={staffName} onPress={onStaffPress} />
+
+      <TouchableOpacity
+        style={styles.confirmButton}
         onPress={onConfirm} // <--- CAMBIÁ EL console.log POR ESTO
         activeOpacity={0.8}
         >
