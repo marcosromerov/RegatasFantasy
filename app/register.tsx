@@ -128,7 +128,7 @@ export default function Register() {
       {/* Logo */}
       <View style={styles.logoContainer}>
         <Image
-          source={require('../assets/images/crbvjpg.jpg')}
+          source={require('../assets/images/regatas.png')}
           style={styles.logo}
         />
         <View style={styles.titleContainer}>
@@ -243,16 +243,10 @@ const styles = StyleSheet.create({
     marginBottom: 40
   },
   logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 130,
+    height: 130,
     marginBottom: 25,
-    resizeMode: 'cover',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4
+    resizeMode: 'contain'
   },
   titleContainer: {
     marginBottom: 10
