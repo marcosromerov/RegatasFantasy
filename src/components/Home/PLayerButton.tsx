@@ -34,6 +34,7 @@ export const PlayerButton = ({ player, onSelect }: PlayerButtonProps) => {
           <View style={styles.nameBadge}>
           
             <Text style={styles.playerLastName} numberOfLines={1}>
+              {player.selectedPlayer.nombre ? `${player.selectedPlayer.nombre.charAt(0).toUpperCase()}. ` : ''}
               {player.selectedPlayer.apellido.toUpperCase()}
             </Text>
           </View>

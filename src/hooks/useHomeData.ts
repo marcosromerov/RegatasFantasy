@@ -135,7 +135,11 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
         console.error('[handlePlayerSelect] Supabase error:', error.message, error.details);
         setFilteredPlayers([]);
       } else {
-        setFilteredPlayers(data || []);
+        // Excluimos los jugadores ya elegidos en OTRA posición (no se puede repetir).
+        const yaElegidos = players
+          .filter(p => p.id !== id && p.selectedPlayer)
+          .map(p => p.selectedPlayer!.id);
+        setFilteredPlayers((data || []).filter(pl => !yaElegidos.includes(pl.id)));
       }
     } catch (err) {
       console.error('[handlePlayerSelect] exception:', err);
@@ -147,6 +151,19 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
 
   const handleConfirmSelection = (selectedPlayer: DBPlayer) => {
     if (selectedPositionId === null) return;
+
+    // No permitir el mismo jugador en dos posiciones.
+    const yaElegido = players.some(
+      p => p.id !== selectedPositionId && p.selectedPlayer?.id === selectedPlayer.id
+    );
+    if (yaElegido) {
+      setAlertConfig({
+        visible: true,
+        title: 'JUGADOR REPETIDO',
+        message: `${selectedPlayer.nombre} ${selectedPlayer.apellido} ya está en tu equipo. Elegí otro.`,
+      });
+      return;
+    }
 
     setPlayers(prev =>
       prev.map(p =>
