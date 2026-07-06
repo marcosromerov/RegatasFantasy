@@ -139,11 +139,11 @@ const styles = StyleSheet.create({
     width: '95%', // Casi todo el ancho de la cancha
     paddingHorizontal: 10,
   },
-  fieldContainer: { width: '100%', minHeight: 580, elevation: 8 },
+  fieldContainer: { width: '100%', minHeight: 580, elevation: 8, overflow: 'hidden' },
   fieldImage: { resizeMode: 'cover' },
   field: { gap: 16, paddingVertical: 20 },
   row: { alignItems: 'center' },
-  positionsRow: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
+  positionsRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', width: '100%' },
   buttonWrapper: {
     padding: 15,
     backgroundColor: '#283a82', // Color de fondo oscuro para que resalte el botón
