@@ -168,7 +168,7 @@ const proximoRival = proxima ? proxima.rival : null;
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#ffffff', // Azul oscuro profundo para que el footer no desentone
+    backgroundColor: '#283a82', // Azul del club: el área superior (status bar) queda del mismo color que la navbar
   },
   scrollContent: {
     // Quitamos paddingBottom porque el Footer ya le da aire al final

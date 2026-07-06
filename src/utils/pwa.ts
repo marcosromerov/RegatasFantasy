@@ -36,6 +36,10 @@ export function setupPwa() {
   ensure('meta[name="apple-mobile-web-app-title"]', () => meta('apple-mobile-web-app-title', 'Regatas Fantasy'));
   ensure('link[rel="apple-touch-icon"]', () => link('apple-touch-icon', '/icon.jpg'));
 
+  // Fondo azul del club en el body: evita franjas blancas arriba/abajo en la PWA.
+  if (doc.body) doc.body.style.backgroundColor = '#283a82';
+  if (doc.documentElement) doc.documentElement.style.backgroundColor = '#283a82';
+
   if (nav?.serviceWorker) {
     nav.serviceWorker.register('/sw.js').catch(() => {});
   }

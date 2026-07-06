@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../src/components/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,7 +11,11 @@ const ADMIN_WHATSAPP = '5491122492885';
 
 export default function Configuracion() {
   const [loading, setLoading] = useState(true);
-  const [nombre, setNombre] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
   const [email, setEmail] = useState<string | null>(null);
   const router = useRouter();
 
@@ -20,6 +24,7 @@ export default function Configuracion() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          setUserId(user.id);
           setEmail(user.email || null);
           const { data } = await supabase
             .from('usuarios')
@@ -27,9 +32,8 @@ export default function Configuracion() {
             .eq('id', user.id)
             .maybeSingle();
           if (data) {
-            setNombre(`${data.nombre ?? ''} ${data.apellido ?? ''}`.trim() || user.email?.split('@')[0] || 'Usuario');
-          } else {
-            setNombre(user.email?.split('@')[0] || 'Usuario');
+            setNombre(data.nombre ?? '');
+            setApellido(data.apellido ?? '');
           }
         }
       } catch (error) {
@@ -41,10 +45,36 @@ export default function Configuracion() {
     fetchUserData();
   }, []);
 
+  const handleGuardar = async () => {
+    if (!nombre.trim() || !apellido.trim()) {
+      Alert.alert('Campos vacíos', 'Nombre y apellido no pueden estar vacíos.');
+      return;
+    }
+    try {
+      setSaving(true);
+      const { data, error } = await supabase
+        .from('usuarios')
+        .update({ nombre: nombre.trim(), apellido: apellido.trim() })
+        .eq('id', userId)
+        .select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        Alert.alert('No se pudo guardar', 'No se actualizó ninguna fila.');
+        return;
+      }
+      setEditing(false);
+      Alert.alert('¡Listo!', 'Tus datos se actualizaron.');
+    } catch (err) {
+      console.error('Error guardando datos:', err);
+      Alert.alert('Error', 'No se pudieron guardar los datos.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleWhatsapp = () => {
     const msg = `Hola! Soy ${email ?? ''} y necesito ayuda con Regatas Fantasy.`;
-    const url = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(msg)}`;
-    Linking.openURL(url).catch(() =>
+    Linking.openURL(`https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(msg)}`).catch(() =>
       Alert.alert('No se pudo abrir WhatsApp', 'Escribile al admin manualmente.')
     );
   };
@@ -86,8 +116,44 @@ export default function Configuracion() {
         {/* PERFIL */}
         <View style={styles.profileCard}>
           <MaterialCommunityIcons name="account-circle" size={72} color="#FFEA00" />
-          <Text style={styles.profileName}>{nombre}</Text>
-          <Text style={styles.profileEmail}>{email}</Text>
+
+          {editing ? (
+            <>
+              <TextInput
+                style={styles.input}
+                value={nombre}
+                onChangeText={setNombre}
+                placeholder="Nombre"
+                placeholderTextColor="#94A3B8"
+              />
+              <TextInput
+                style={styles.input}
+                value={apellido}
+                onChangeText={setApellido}
+                placeholder="Apellido"
+                placeholderTextColor="#94A3B8"
+              />
+              <Text style={styles.profileEmail}>{email}</Text>
+
+              <View style={styles.editRow}>
+                <TouchableOpacity style={[styles.editBtn, styles.cancelBtn]} onPress={() => setEditing(false)} disabled={saving}>
+                  <Text style={styles.cancelText}>CANCELAR</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.editBtn, styles.saveBtn]} onPress={handleGuardar} disabled={saving}>
+                  {saving ? <ActivityIndicator size="small" color="#283a82" /> : <Text style={styles.saveText}>GUARDAR</Text>}
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.profileName}>{`${nombre} ${apellido}`.trim() || 'Usuario'}</Text>
+              <Text style={styles.profileEmail}>{email}</Text>
+              <TouchableOpacity style={styles.editLink} onPress={() => setEditing(true)}>
+                <MaterialCommunityIcons name="pencil" size={16} color="#283a82" />
+                <Text style={styles.editLinkText}>Editar datos</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* CONTACTO */}
@@ -125,6 +191,37 @@ const styles = StyleSheet.create({
   },
   profileName: { fontSize: 20, fontWeight: '900', color: '#FFEA00', marginTop: 12, textAlign: 'center' },
   profileEmail: { fontSize: 14, color: '#94A3B8', marginTop: 4 },
+
+  input: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: '#fff',
+    fontSize: 16,
+    marginTop: 12,
+  },
+  editRow: { flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' },
+  editBtn: { flex: 1, height: 42, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  cancelBtn: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  cancelText: { color: '#CBD5E1', fontWeight: '700', fontSize: 13 },
+  saveBtn: { backgroundColor: '#FFEA00' },
+  saveText: { color: '#283a82', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
+
+  editLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFEA00',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginTop: 16,
+  },
+  editLinkText: { color: '#283a82', fontWeight: '800', fontSize: 13 },
 
   row: {
     flexDirection: 'row',
