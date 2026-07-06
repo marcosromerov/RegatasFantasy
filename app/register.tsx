@@ -144,7 +144,7 @@ export default function Register() {
         {/* Nombre Input */}
         <View style={styles.inputGroup}>
           <View style={styles.inputContainer}>
-            <Text style={styles.inputIcon}>👤</Text>
+            <MaterialCommunityIcons name="account-outline" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Nombre"
@@ -158,7 +158,7 @@ export default function Register() {
         {/* Apellido Input */}
         <View style={styles.inputGroup}>
           <View style={styles.inputContainer}>
-            <Text style={styles.inputIcon}>👤</Text>
+            <MaterialCommunityIcons name="card-account-details-outline" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Apellido"
@@ -172,7 +172,7 @@ export default function Register() {
         {/* Email Input */}
         <View style={styles.inputGroup}>
           <View style={styles.inputContainer}>
-            <Text style={styles.inputIcon}>✉</Text>
+            <MaterialCommunityIcons name="email-outline" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               textContentType="emailAddress"
@@ -188,7 +188,7 @@ export default function Register() {
         {/* Password Input */}
         <View style={styles.inputGroup}>
           <View style={styles.inputContainer}>
-            <Text style={styles.inputIcon}>🔒</Text>
+            <MaterialCommunityIcons name="lock-outline" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Contraseña"
