@@ -29,15 +29,16 @@ export default function RootLayout() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // Guard: sin sesión → login; con sesión estando en login/register → home.
+  // Guard: sin sesión y fuera de login/register → login.
+  // OJO: NO redirigimos al home con solo tener sesión, porque durante el registro
+  // signUp crea una sesión transitoria y romperíamos el flujo de aprobación.
+  // login.tsx (valida "aprobado") y register.tsx manejan su propia navegación.
   useEffect(() => {
     if (!ready) return;
     const enAuth = segments[0] === 'login' || segments[0] === 'register';
 
     if (!session && !enAuth) {
       router.replace('/login');
-    } else if (session && enAuth) {
-      router.replace('/');
     }
   }, [ready, session, segments]);
 
