@@ -1,11 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
 import { PlayerButton } from './PLayerButton';
 import { StaffCard } from './StaffCard';
 import { PlayerPosition } from '../../types/fantasy';
-
-// Franjas de "pasto cortado" (dos tonos de verde) que llenan la cancha a cualquier alto.
-const STRIPES = ['#3f8e4f', '#4a9a5a', '#3f8e4f', '#4a9a5a', '#3f8e4f', '#4a9a5a', '#3f8e4f', '#4a9a5a', '#3f8e4f', '#4a9a5a', '#3f8e4f', '#4a9a5a'];
 
 interface CanchaProps {
   players: PlayerPosition[];
@@ -18,16 +15,11 @@ interface CanchaProps {
 
 export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPress, edicionAbierta = true }: CanchaProps) => {
   return (
-    <View style={styles.fieldContainer}>
-      {/* Fondo: franjas de pasto */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {STRIPES.map((c, i) => (
-          <View key={i} style={{ flex: 1, backgroundColor: c }} />
-        ))}
-        {/* Línea de mitad de cancha */}
-        <View style={styles.midLine} />
-      </View>
-
+    <ImageBackground
+      source={require('../../../assets/images/Gemini_Generated_Image_ghyme7ghyme7ghym.png')}
+      style={styles.fieldContainer}
+      imageStyle={styles.fieldImage}
+    >
       <View style={styles.field}>
         {/* Forwards (1-3) */}
         <View style={styles.row}>
@@ -130,7 +122,7 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
     </View>
 
 
-    </View>
+    </ImageBackground>
   );
 };
 
@@ -147,8 +139,8 @@ const styles = StyleSheet.create({
     width: '95%', // Casi todo el ancho de la cancha
     paddingHorizontal: 10,
   },
-  fieldContainer: { width: '100%', minHeight: 580, elevation: 8, overflow: 'hidden', backgroundColor: '#3f8e4f' },
-  midLine: { position: 'absolute', top: '50%', left: 0, right: 0, height: 2, backgroundColor: 'rgba(255,255,255,0.45)' },
+  fieldContainer: { width: '100%', minHeight: 580, elevation: 8, overflow: 'hidden' },
+  fieldImage: { resizeMode: 'cover' },
   field: { gap: 16, paddingVertical: 20 },
   row: { alignItems: 'center' },
   positionsRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', width: '100%' },
