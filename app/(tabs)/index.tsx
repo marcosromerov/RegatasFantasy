@@ -103,7 +103,7 @@ const proximoRival = proxima ? proxima.rival : null;
         onLogout={handleSignOut} 
       />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <InfoSection
           points={userPoints}
           ranking={userRanking}
@@ -170,9 +170,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#283a82', // Azul del club: el área superior (status bar) queda del mismo color que la navbar
   },
+  scroll: {
+    flex: 1,
+    backgroundColor: '#ffffff', // Fondo blanco del cuerpo; el card azul resalta encima
+  },
   scrollContent: {
     // Quitamos paddingBottom porque el Footer ya le da aire al final
-    paddingBottom: 0, 
+    paddingBottom: 0,
   },
   center: {
     flex: 1,
