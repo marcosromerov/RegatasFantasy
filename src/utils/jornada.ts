@@ -9,6 +9,13 @@ import { getProximoPartido } from '../components/Home/CalendarModal';
 export const JORNADA_PRUEBA: number | null = null;
 
 /**
+ * 🧪 MODO PRUEBA: si es true, la edición del equipo queda ABIERTA cualquier día
+ * (ignora la regla mié–vie), pero SIN tocar la jornada real del fixture.
+ * Útil para probar/demostrar fuera de la ventana. Poné false para producción.
+ */
+export const FORZAR_EDICION_ABIERTA = true;
+
+/**
  * Jornada "actual" para armar equipo = número del próximo partido del fixture.
  * Devuelve null si no hay próximo partido con fecha definida (ej: 2ª ronda a definir).
  */
@@ -47,7 +54,7 @@ const diaSemanaArgentina = (base: Date = new Date()): number => {
 const DIAS_EDICION = [3, 4, 5];
 
 export const isEdicionAbierta = (today: Date = new Date()): boolean => {
-  if (JORNADA_PRUEBA !== null) return true;
+  if (FORZAR_EDICION_ABIERTA || JORNADA_PRUEBA !== null) return true;
   return DIAS_EDICION.includes(diaSemanaArgentina(today));
 };
 

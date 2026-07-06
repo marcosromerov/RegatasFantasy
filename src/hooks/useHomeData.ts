@@ -173,6 +173,14 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, visible: false }));
 
+  const avisarEdicionCerrada = () => {
+    setAlertConfig({
+      visible: true,
+      title: 'EDICIÓN CERRADA',
+      message: MENSAJE_EDICION_CERRADA,
+    });
+  };
+
   const handleConfirmar = async () => {
     // 0. Bloqueo por ventana de edición (miércoles–viernes).
     if (!edicionAbierta) {
@@ -270,6 +278,7 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
     closeAlert,
     filteredPlayers,
     edicionAbierta,
+    avisarEdicionCerrada,
     staffList,
     selectedStaff,
     handleSelectStaff,

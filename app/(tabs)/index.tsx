@@ -53,6 +53,7 @@ export default function Home() {
     filteredPlayers,
     loadingModal,
     edicionAbierta,
+    avisarEdicionCerrada,
     handlePlayerSelect,
     handleConfirmSelection,
     handleSignOut,
@@ -70,7 +71,7 @@ const numeroFecha = proxima ? proxima.fecha.split(' ')[1] : "-";
 const proximoRival = proxima ? proxima.rival : null;
 
   const onOpenModal = async (id: number) => {
-    if (!edicionAbierta) return; // fuera de la ventana mié–vie no se puede editar
+    if (!edicionAbierta) { avisarEdicionCerrada(); return; } // fuera de la ventana mié–vie
     const pos = players.find(p => p.id === id);
     if (pos) {
       setSelectedPosName(pos.position);
