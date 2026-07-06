@@ -10,9 +10,10 @@ interface CanchaProps {
   onConfirm: () => void; // <--- AGREGÁ ESTA LÍNEA
   staffName?: string | null;
   onStaffPress?: () => void;
+  edicionAbierta?: boolean; // miércoles–viernes: se puede editar/confirmar
 }
 
-export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPress }: CanchaProps) => {
+export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPress, edicionAbierta = true }: CanchaProps) => {
   return (
     <ImageBackground
       source={require('../../../assets/images/Gemini_Generated_Image_ghyme7ghyme7ghym.png')}
@@ -104,10 +105,17 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
       <View style={styles.buttonWrapper}>
       <StaffCard staffName={staffName} onPress={onStaffPress} />
 
+      {!edicionAbierta && (
+        <Text style={styles.lockedText}>
+          🔒 Edición cerrada — podés armar tu equipo de miércoles a viernes
+        </Text>
+      )}
+
       <TouchableOpacity
-        style={styles.confirmButton}
+        style={[styles.confirmButton, !edicionAbierta && styles.confirmButtonDisabled]}
         onPress={onConfirm} // <--- CAMBIÁ EL console.log POR ESTO
         activeOpacity={0.8}
+        disabled={!edicionAbierta}
         >
         <Text style={styles.confirmButtonText}>CONFIRMAR EQUIPO</Text>
       </TouchableOpacity>
@@ -159,5 +167,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 1,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.45,
+  },
+  lockedText: {
+    color: '#FFEA00',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
   },
 });

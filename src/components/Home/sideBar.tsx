@@ -21,7 +21,6 @@ export const Sidebar = ({ isOpen, onClose, onLogout }: SidebarProps) => {
   const baseMenuItems = [
    { name: 'Mi Equipo', icon: 'users-cog', path: '/miEquipo' },
     { name: 'Ranking', icon: 'chart-bar', path: '/ranking' },
-    { name: 'Goleadores', icon: 'trophy', path: '/goleadores' },
     { name: 'Reglamento', icon: 'book-open', path: '/reglamento' },
     { name: 'Configuración', icon: 'cog', path: '/configuracion' },
   ];

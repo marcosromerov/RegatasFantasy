@@ -44,3 +44,11 @@ app-example
 
 # supabase CLI cache
 supabase/.temp/
+
+# Claude Code
+.claude/
+
+# scratch / QR helpers
+qr.svg
+qrgen.cjs
+qrsvg.cjs

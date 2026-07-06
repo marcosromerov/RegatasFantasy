@@ -54,16 +54,36 @@ export const PRIMERA_RONDA: FixtureItem[] = [
 const flipCondicion = (c: 'Local' | 'Visitante'): 'Local' | 'Visitante' =>
   c === 'Local' ? 'Visitante' : 'Local';
 
-// --- SEGUNDA RONDA: mismos rivales, mismo orden, condición invertida, fechas a definir ---
-export const SEGUNDA_RONDA: FixtureItem[] = PRIMERA_RONDA.map((item) => ({
-  id: item.id + PRIMERA_RONDA.length,
-  fecha: `Fecha ${item.id + PRIMERA_RONDA.length}`,
-  rival: item.rival,
-  dia: '', // a definir
-  condicion: flipCondicion(item.condicion),
-  estado: 'pendiente',
-  ronda: 2,
-}));
+// Fechas reales del segundo torneo (URBA 2026), por número de fecha.
+const DIAS_SEGUNDA_RONDA: Record<number, string> = {
+  14: '04/07',
+  15: '11/07',
+  16: '18/07',
+  17: '01/08',
+  18: '15/08',
+  19: '22/08',
+  20: '29/08',
+  21: '05/09',
+  22: '12/09',
+  23: '26/09',
+  24: '03/10',
+  25: '10/10',
+  26: '17/10',
+};
+
+// --- SEGUNDA RONDA: mismos rivales, mismo orden, condición invertida, con fechas reales ---
+export const SEGUNDA_RONDA: FixtureItem[] = PRIMERA_RONDA.map((item) => {
+  const nuevaFecha = item.id + PRIMERA_RONDA.length;
+  return {
+    id: nuevaFecha,
+    fecha: `Fecha ${nuevaFecha}`,
+    rival: item.rival,
+    dia: DIAS_SEGUNDA_RONDA[nuevaFecha] ?? '',
+    condicion: flipCondicion(item.condicion),
+    estado: 'pendiente',
+    ronda: 2,
+  };
+});
 
 export const FIXTURE_DATA: FixtureItem[] = [...PRIMERA_RONDA, ...SEGUNDA_RONDA];
 

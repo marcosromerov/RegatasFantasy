@@ -8,6 +8,7 @@ import { Sidebar } from '../../src/components/Home/sideBar';
 import { InfoSection } from '../../src/components/Home/InfoSection';
 import { Cancha } from '../../src/components/Home/Cancha';
 import { PlayerSelectorModal } from '../../src/components/Home/PLayerSelectionModal';
+import { StaffSelectionModal } from '../../src/components/Home/StaffSelectionModal';
 import { MainFooter } from '../../src/components/Home/Footer'; // Cambié el nombre para evitar conflictos
 import { FIXTURE_DATA, getProximoPartido } from '../../src/components/Home/CalendarModal';
 
@@ -40,20 +41,27 @@ export default function Home() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPosName, setSelectedPosName] = useState("");
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [staffModalVisible, setStaffModalVisible] = useState(false);
  
 
-  const { 
-    userName, 
-    loading, 
-    players, 
-    filteredPlayers, 
-    loadingModal, 
-    handlePlayerSelect, 
+  const {
+    userName,
+    userPoints,
+    userRanking,
+    loading,
+    players,
+    filteredPlayers,
+    loadingModal,
+    edicionAbierta,
+    handlePlayerSelect,
     handleConfirmSelection,
     handleSignOut,
     handleConfirmar,
     alertConfig,
     closeAlert,
+    staffList,
+    selectedStaff,
+    handleSelectStaff,
   } = useHomeData(PLAYER_POSITIONS);
 
 // Próximo partido según la fecha de hoy (no según el campo `estado` manual)
@@ -62,6 +70,7 @@ const numeroFecha = proxima ? proxima.fecha.split(' ')[1] : "-";
 const proximoRival = proxima ? proxima.rival : null;
 
   const onOpenModal = async (id: number) => {
+    if (!edicionAbierta) return; // fuera de la ventana mié–vie no se puede editar
     const pos = players.find(p => p.id === id);
     if (pos) {
       setSelectedPosName(pos.position);
@@ -95,17 +104,21 @@ const proximoRival = proxima ? proxima.rival : null;
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <InfoSection
-          points={0}
+          points={userPoints}
+          ranking={userRanking}
           money={200}
           onCalendarPress={() => setCalendarVisible(true)}
           proximaFecha={numeroFecha}
           proximoRival={proximoRival}
         />
 
-        <Cancha 
-          players={players} 
-          onPlayerPress={onOpenModal} 
+        <Cancha
+          players={players}
+          onPlayerPress={onOpenModal}
           onConfirm={handleConfirmar} // <--- PASÁ ESTA FUNCIÓN COMO PROP
+          edicionAbierta={edicionAbierta}
+          staffName={selectedStaff?.nombre ?? null}
+          onStaffPress={() => { if (edicionAbierta) setStaffModalVisible(true); }}
         />
 
         {/* --- EL FOOTER VA ACÁ (Al final del contenido scrolleable) --- */}
@@ -124,10 +137,22 @@ const proximoRival = proxima ? proxima.rival : null;
         }}
       />
 
-      <CalendarModal 
-    visible={calendarVisible} 
-    onClose={() => setCalendarVisible(false)} 
+      <CalendarModal
+    visible={calendarVisible}
+    onClose={() => setCalendarVisible(false)}
 />
+
+      <StaffSelectionModal
+        visible={staffModalVisible}
+        onClose={() => setStaffModalVisible(false)}
+        staffs={staffList}
+        loading={false}
+        selectedId={selectedStaff?.id ?? null}
+        onSelect={(s) => {
+          handleSelectStaff(s);
+          setStaffModalVisible(false);
+        }}
+      />
 
       <CustomAlert 
       visible={alertConfig.visible}

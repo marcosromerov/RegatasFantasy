@@ -5,9 +5,9 @@ export interface PlayerPosition {
   selected: boolean;
   vsTeam?: string;
   selectedPlayer?: {
+    id: number; // jugador_id real en la DB — clave para cruzar con rendimiento_jugador
     nombre: string;
     apellido: string;
-    estrellas: number;
     equipoActual: string;
   };
 }
@@ -17,6 +17,5 @@ export interface DBPlayer {
   nombre: string;
   apellido: string;
   posicion: string;
-  estrellas: number;
   equipoActual: string;
 }

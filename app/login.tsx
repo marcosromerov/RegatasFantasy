@@ -288,7 +288,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   }
 });
-
-function gradient(arg0: number, deg: any, arg2: any, arg3: number, f3f: any, arg5: number, arg6: any, arg7: number) {
-  throw new Error('Function not implemented.');
-}

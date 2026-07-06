@@ -239,7 +239,7 @@ export default function Configuracion() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a2139',
+    backgroundColor: '#283a82',
   },
   centerContainer: {
     flex: 1,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: '#1a2139',
+    backgroundColor: '#283a82',
   },
   contentContainer: {
     paddingVertical: 16,
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   profileCard: {
     marginHorizontal: 16,
     marginBottom: 24,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: '#071037',
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',

@@ -6,13 +6,14 @@ import { getClubLogo, getClubInitials } from '../../constants/clubLogos';
 
 interface InfoSectionProps {
   points: number;
+  ranking?: number | null; // Puesto real del usuario en el ranking
   money: number;
   proximaFecha: string;  // Agregué money de vuelta para que no tire error el TS
   proximoRival: string | null; // Nombre del rival del próximo partido (null = temporada terminada)
   onCalendarPress: () => void;
 }
 
-export const InfoSection = ({ points, money, proximaFecha, proximoRival, onCalendarPress }: InfoSectionProps) => {
+export const InfoSection = ({ points, ranking, money, proximaFecha, proximoRival, onCalendarPress }: InfoSectionProps) => {
   const rivalLogo = getClubLogo(proximoRival);
  return (
     <View style={styles.container}>
@@ -51,7 +52,7 @@ export const InfoSection = ({ points, money, proximaFecha, proximoRival, onCalen
 
         <View style={[styles.statItem, styles.statBorder]}>
           <Text style={styles.statLabel}>RANKING</Text>
-          <Text style={styles.statValue}>#5</Text>
+          <Text style={styles.statValue}>{ranking ? `#${ranking}` : '-'}</Text>
         </View>
 
         <View style={styles.statItem}>
