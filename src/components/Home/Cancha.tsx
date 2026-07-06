@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   fieldContainer: { width: '100%', minHeight: 580, elevation: 8, overflow: 'hidden' },
-  fieldImage: { resizeMode: 'cover' },
+  fieldImage: { resizeMode: 'stretch' },
   field: { gap: 16, paddingVertical: 20 },
   row: { alignItems: 'center' },
   positionsRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', width: '100%' },
