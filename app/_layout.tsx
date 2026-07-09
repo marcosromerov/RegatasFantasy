@@ -1,18 +1,25 @@
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { supabase } from '../api/supabase';
 import { setupPwa } from '../src/utils/pwa';
+import { SplashScreen } from '../src/components/SplashScreen';
 
 export default function RootLayout() {
   const [session, setSession] = useState<any>(null);
   const [ready, setReady] = useState(false);
+  const [minElapsed, setMinElapsed] = useState(false);
   const router = useRouter();
   const segments = useSegments();
 
   // PWA (meta tags + service worker en web)
   useEffect(() => {
     setupPwa();
+  }, []);
+
+  // Tiempo mínimo del splash para que no "parpadee".
+  useEffect(() => {
+    const t = setTimeout(() => setMinElapsed(true), 1000);
+    return () => clearTimeout(t);
   }, []);
 
   // Leemos la sesión persistida (AsyncStorage) y escuchamos cambios (login/logout).
@@ -42,13 +49,9 @@ export default function RootLayout() {
     }
   }, [ready, session, segments]);
 
-  // Mientras leemos la sesión, mostramos un loader (evita el flash de la Home).
-  if (!ready) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#283a82', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#FFEA00" />
-      </View>
-    );
+  // Cold start: splash branded mientras leemos la sesión / despierta Supabase.
+  if (!ready || !minElapsed) {
+    return <SplashScreen />;
   }
 
   return (
