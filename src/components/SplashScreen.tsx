@@ -1,24 +1,46 @@
-import React from 'react';
-import { View, Text, Image, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, Image, Animated, StyleSheet } from 'react-native';
+
+const BAR_WIDTH = 220;
 
 /**
  * Pantalla de arranque (cold start). Se muestra mientras la app carga y
- * valida la sesión / despierta a Supabase. Tapa el flash inicial.
+ * valida la sesión / despierta a Supabase. La barra se completa en ~2.5s.
  */
-export const SplashScreen = () => (
-  <View style={styles.container}>
-    <Image
-      source={require('../../assets/images/regatas.png')}
-      style={styles.logo}
-    />
-    <Text style={styles.title}>
-      <Text style={styles.primary}>Regatas </Text>
-      <Text style={styles.fantasy}>Fantasy</Text>
-    </Text>
-    <Text style={styles.subtitle}>Ser Mejores, Siempre</Text>
-    <ActivityIndicator size="large" color="#FFEA00" style={styles.spinner} />
-  </View>
-);
+export const SplashScreen = () => {
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 2500,
+      useNativeDriver: false, // animamos width (layout), no soportado por el native driver
+    }).start();
+  }, [progress]);
+
+  const width = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, BAR_WIDTH],
+  });
+
+  return (
+    <View style={styles.container}>
+      <Image
+        source={require('../../assets/images/regatas.png')}
+        style={styles.logo}
+      />
+      <Text style={styles.title}>
+        <Text style={styles.primary}>Regatas </Text>
+        <Text style={styles.fantasy}>Fantasy</Text>
+      </Text>
+      <Text style={styles.subtitle}>Ser Mejores, Siempre</Text>
+
+      <View style={styles.track}>
+        <Animated.View style={[styles.fill, { width }]} />
+      </View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -48,5 +70,17 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontWeight: '300',
   },
-  spinner: { marginTop: 34 },
+  track: {
+    width: BAR_WIDTH,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginTop: 40,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: '#FFEA00',
+  },
 });
