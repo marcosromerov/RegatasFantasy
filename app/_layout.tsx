@@ -18,7 +18,7 @@ export default function RootLayout() {
 
   // Tiempo mínimo del splash para que no "parpadee".
   useEffect(() => {
-    const t = setTimeout(() => setMinElapsed(true), 1000);
+    const t = setTimeout(() => setMinElapsed(true), 2500);
     return () => clearTimeout(t);
   }, []);
 
