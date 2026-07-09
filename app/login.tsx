@@ -15,68 +15,75 @@ const buildWhatsappUrl = (email: string) => {
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
-  console.log("Intentando conectar con Supabase...");
+    setError('');
+    setPending(false);
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email,
-    password: password,
-  });
+    if (!email || !password) {
+      setError('Completá tu email y contraseña.');
+      return;
+    }
 
-  if (error) {
-    console.error("❌ Fallo el login:", error.message);
-    Alert.alert("Error", error.message);
-    return;
-  }
+    setLoading(true);
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-  if (!data.user) {
-    Alert.alert("Error", "No se pudo iniciar sesión.");
-    return;
-  }
+      if (signInError) {
+        const m = signInError.message.toLowerCase();
+        if (m.includes('invalid login credentials')) {
+          setError('Email o contraseña incorrectos.');
+        } else if (m.includes('email not confirmed')) {
+          setError('Tenés que confirmar tu email antes de entrar.');
+        } else {
+          setError('No se pudo iniciar sesión. Probá de nuevo.');
+        }
+        return;
+      }
 
-  // Verificar si el usuario está aprobado (o si es admin → bypass).
-  const { data: perfil, error: perfilError } = await supabase
-    .from('usuarios')
-    .select('aprobado, Role')
-    .eq('id', data.user.id)
-    .maybeSingle();
+      if (!data.user) {
+        setError('No se pudo iniciar sesión.');
+        return;
+      }
 
-  if (perfilError) {
-    console.error("Error leyendo perfil:", perfilError.message);
-    Alert.alert("Error", "No se pudo validar tu cuenta.");
-    await supabase.auth.signOut();
-    return;
-  }
+      const { data: perfil, error: perfilError } = await supabase
+        .from('usuarios')
+        .select('aprobado, Role')
+        .eq('id', data.user.id)
+        .maybeSingle();
 
-  const esAdmin = perfil?.Role === 'admin';
+      if (perfilError) {
+        await supabase.auth.signOut();
+        setError('No se pudo validar tu cuenta.');
+        return;
+      }
 
-  if (!perfil || (!perfil.aprobado && !esAdmin)) {
-    // No aprobado → cerramos sesión y damos opción de avisar por WhatsApp.
-    await supabase.auth.signOut();
-    Alert.alert(
-      "Cuenta pendiente de aprobación",
-      "Tu cuenta todavía no fue aprobada por el admin. Avisale por WhatsApp así te habilita.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Avisar por WhatsApp",
-          onPress: () => {
-            const url = buildWhatsappUrl(email);
-            Linking.openURL(url).catch(() =>
-              Alert.alert("No se pudo abrir WhatsApp", "Avisá manualmente al admin.")
-            );
-          },
-        },
-      ]
+      const esAdmin = perfil?.Role === 'admin';
+      if (!perfil || (!perfil.aprobado && !esAdmin)) {
+        await supabase.auth.signOut();
+        setError('Tu cuenta todavía no fue aprobada por el admin.');
+        setPending(true);
+        return;
+      }
+
+      router.replace('/');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const avisarWhatsapp = () => {
+    Linking.openURL(buildWhatsappUrl(email)).catch(() =>
+      setError('No se pudo abrir WhatsApp. Avisá manualmente al admin.')
     );
-    return;
-  }
-
-  console.log("✅ Login exitoso! Usuario:", data.user?.email);
-  router.replace('/');
-};
+  };
 
   const handleRegister = () => {
     router.push('/register');
@@ -130,10 +137,24 @@ export default function Login() {
         </View>
       </View>
         
-        <TouchableOpacity style={styles.boton} onPress={handleLogin}>
+        {error ? (
+          <View style={styles.errorBanner}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {pending ? (
+          <TouchableOpacity style={styles.whatsappBtn} onPress={avisarWhatsapp}>
+            <MaterialCommunityIcons name="whatsapp" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.whatsappText}>Avisar al admin por WhatsApp</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        <TouchableOpacity style={[styles.boton, loading && { opacity: 0.6 }]} onPress={handleLogin} disabled={loading}>
           <View style={styles.botonContent}>
             <Text style={styles.botonFlecha}>➜</Text>
-            <Text style={styles.botonTexto}>Iniciar Sesión</Text>
+            <Text style={styles.botonTexto}>{loading ? 'Ingresando...' : 'Iniciar Sesión'}</Text>
           </View>
         </TouchableOpacity>
 
@@ -280,5 +301,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFEA00',
     fontWeight: 'bold'
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: 18,
+  },
+  errorText: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  whatsappBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#25D366',
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginTop: 10,
+  },
+  whatsappText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   }
 });
