@@ -57,11 +57,16 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
         }
 
         // --- 2. CARGAR LA LISTA DE STAFF DISPONIBLE ---
-        const { data: staffData } = await supabase
+        const { data: staffData, error: staffError } = await supabase
           .from('staff')
-          .select('id, nombre')
-          .order('nombre', { ascending: true });
-        const staffMapped = (staffData ?? []).map((s: any) => ({ id: s.id, nombre: s.nombre }));
+          .select('*')
+          .order('id', { ascending: true });
+        if (staffError) console.log('[staff] error:', staffError.message);
+        console.log('[staff] filas:', staffData?.length ?? 0, staffData?.[0]);
+        const staffMapped = (staffData ?? []).map((s: any) => ({
+          id: s.id,
+          nombre: s.nombre ?? s.Nombre ?? s.name ?? s.club ?? s.equipo ?? s.descripcion ?? `Staff ${s.id}`,
+        }));
         setStaffList(staffMapped);
 
         // --- 3. CARGAR EL EQUIPO DE LA JORNADA ACTUAL ---
