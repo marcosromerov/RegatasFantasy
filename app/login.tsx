@@ -159,7 +159,7 @@ export default function Login() {
         </TouchableOpacity>
 
         {/* Forgot Password */}
-        <TouchableOpacity style={styles.forgotContainer}>
+        <TouchableOpacity style={styles.forgotContainer} onPress={() => router.push('/recuperar')}>
           <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
 

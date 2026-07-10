@@ -42,9 +42,10 @@ export default function RootLayout() {
   // login.tsx (valida "aprobado") y register.tsx manejan su propia navegación.
   useEffect(() => {
     if (!ready) return;
-    const enAuth = segments[0] === 'login' || segments[0] === 'register';
+    const publicas = ['login', 'register', 'recuperar', 'reset'];
+    const enPublica = publicas.includes(segments[0] as string);
 
-    if (!session && !enAuth) {
+    if (!session && !enPublica) {
       router.replace('/login');
     }
   }, [ready, session, segments]);
