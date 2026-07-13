@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 export interface StaffOption {
   id: number;
   nombre: string;
+  integrantes?: string;
 }
 
 interface StaffSelectionModalProps {
@@ -46,7 +47,12 @@ export const StaffSelectionModal = ({
                     <View style={styles.iconCircle}>
                       <MaterialCommunityIcons name="whistle-outline" size={22} color="#283a82" />
                     </View>
-                    <Text style={styles.name}>{s.nombre}</Text>
+                    <View style={styles.info}>
+                      <Text style={styles.name}>{s.nombre}</Text>
+                      {s.integrantes ? (
+                        <Text style={styles.members} numberOfLines={2}>{s.integrantes}</Text>
+                      ) : null}
+                    </View>
                     {elegido && (
                       <MaterialCommunityIcons name="check-circle" size={22} color="#4CAF50" />
                     )}
@@ -84,6 +90,8 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#FFEA00', justifyContent: 'center', alignItems: 'center',
   },
-  name: { flex: 1, fontWeight: 'bold', color: '#283a82', fontSize: 15 },
+  info: { flex: 1 },
+  name: { fontWeight: 'bold', color: '#283a82', fontSize: 15 },
+  members: { color: '#667', fontSize: 12, marginTop: 2 },
   empty: { textAlign: 'center', color: '#666', padding: 40 },
 });

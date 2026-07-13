@@ -8,7 +8,7 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
   const [userName, setUserName] = useState<string | null>(null);
   const [userPoints, setUserPoints] = useState<number>(0);
   const [userRanking, setUserRanking] = useState<number | null>(null);
-  const [staffList, setStaffList] = useState<{ id: number; nombre: string }[]>([]);
+  const [staffList, setStaffList] = useState<{ id: number; nombre: string; integrantes?: string }[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<{ id: number; nombre: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [players, setPlayers] = useState<PlayerPosition[]>(initialPositions);
@@ -66,6 +66,7 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
         const staffMapped = (staffData ?? []).map((s: any) => ({
           id: s.id,
           nombre: s.nombre ?? s.Nombre ?? s.name ?? s.club ?? s.equipo ?? s.descripcion ?? `Staff ${s.id}`,
+          integrantes: s.integrantes ?? s.Integrantes ?? undefined,
         }));
         setStaffList(staffMapped);
 
