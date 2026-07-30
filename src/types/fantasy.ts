@@ -9,6 +9,7 @@ export interface PlayerPosition {
     nombre: string;
     apellido: string;
     equipoActual: string;
+    puntos?: number; // puntos a mostrar (equipos destacados); opcional
   };
 }
 

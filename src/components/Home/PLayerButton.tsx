@@ -21,6 +21,13 @@ export const PlayerButton = ({ player, onSelect }: PlayerButtonProps) => {
       <View style={styles.playerTeamOverlay}>
         <Text style={styles.playerTeamText}>{player.vsTeam || 'RBV'}</Text>
       </View>
+
+      {/* Badge de puntos (equipos destacados) */}
+      {player.selected && player.selectedPlayer?.puntos != null && (
+        <View style={styles.ptsBadge}>
+          <Text style={styles.ptsText}>{player.selectedPlayer.puntos}</Text>
+        </View>
+      )}
       
       {/* Contenido dinámico */}
       {player.selected && player.selectedPlayer ? (
@@ -121,6 +128,19 @@ const styles = StyleSheet.create({
     color: '#FFEA00',
     textAlign: 'center',
   },
+  ptsBadge: {
+    position: 'absolute',
+    top: 14,
+    right: 2,
+    backgroundColor: '#FFEA00',
+    borderRadius: 10,
+    minWidth: 20,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  ptsText: { color: '#283a82', fontWeight: '900', fontSize: 10 },
   playerUnselectedContent: {
     flex: 1,
     justifyContent: 'center',

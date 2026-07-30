@@ -11,9 +11,10 @@ interface CanchaProps {
   staffName?: string | null;
   onStaffPress?: () => void;
   edicionAbierta?: boolean; // miércoles–viernes: se puede editar/confirmar
+  readOnly?: boolean; // solo mostrar la cancha (equipos destacados): sin staff ni confirmar
 }
 
-export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPress, edicionAbierta = true }: CanchaProps) => {
+export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPress, edicionAbierta = true, readOnly = false }: CanchaProps) => {
   return (
     <ImageBackground
       source={require('../../../assets/images/Gemini_Generated_Image_ghyme7ghyme7ghym.png')}
@@ -102,6 +103,7 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
         {/* Agregá el resto de las filas (Tercera, Backs, etc) siguiendo el mismo patrón */}
       </View>
 
+      {!readOnly && (
       <View style={styles.buttonWrapper}>
       <StaffCard staffName={staffName} onPress={onStaffPress} />
 
@@ -120,6 +122,7 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
         <Text style={styles.confirmButtonText}>CONFIRMAR EQUIPO</Text>
       </TouchableOpacity>
     </View>
+      )}
 
 
     </ImageBackground>
