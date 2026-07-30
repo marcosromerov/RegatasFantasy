@@ -66,8 +66,8 @@ const parseCsv = (rawText: string, kind: CsvKind): ParsedCsv['rows'] => {
   let headerIdx = -1;
   for (const c of candidatos) {
     const idx = lines.findIndex((l) => {
-      const cols = partir(l, c);
-      return expected.every((h) => cols.includes(h));
+      const cols = partir(l, c).map((x) => x.toLowerCase());
+      return expected.every((h) => cols.includes(h.toLowerCase()));
     });
     if (idx !== -1) { sep = c; headerIdx = idx; break; }
   }
@@ -81,27 +81,39 @@ const parseCsv = (rawText: string, kind: CsvKind): ParsedCsv['rows'] => {
   const cortar = (line: string): string[] => partir(line, sep);
 
   const headers = cortar(lines[headerIdx]);
-  const rows: CsvRow[] = [];
+  const headersLower = headers.map((h) => h.toLowerCase());
+  const idCol = kind === 'puntuaciones' ? 'jugador_id' : 'staff_id';
+  const val = (values: string[], h: string): string => {
+    const idx = headersLower.indexOf(h.toLowerCase());
+    return idx >= 0 ? (values[idx] ?? '') : '';
+  };
 
+  const rows: CsvRow[] = [];
   for (let i = headerIdx + 1; i < lines.length; i++) {
     const values = cortar(lines[i]);
-    if (values.length !== headers.length) {
-      throw new Error(
-        `Fila ${i + 1}: cantidad de columnas no coincide con el encabezado (${values.length} vs ${headers.length}).`
-      );
-    }
 
-    // Solo tomamos las columnas esperadas (ignoramos extras, ej: una columna 'nombre').
+    // Fila totalmente vacía → la saltamos.
+    if (values.every((v) => v === '')) continue;
+
+    // Sin id válido (fila de planilla sin cargar) → la saltamos, no es error.
+    const idRaw = val(values, idCol);
+    const idNum = Number(idRaw);
+    if (idRaw === '' || !Number.isInteger(idNum) || idNum <= 0) continue;
+
+    // Solo tomamos las columnas esperadas (ignoramos extras: nombre, stats, etc.).
     const row: CsvRow = {};
     for (const h of expected) {
-      const v = values[headers.indexOf(h)];
+      const v = val(values, h);
       if (h === 'resultado_p1' || h === 'resultado_p2') {
-        const up = (v ?? '').toUpperCase();
+        const up = v.toUpperCase();
         if (!VALID_RESULT.has(up)) {
           throw new Error(`Fila ${i + 1}, columna "${h}": valor inválido "${v}" (se espera G, E o P).`);
         }
         row[h] = up;
       } else {
+        if (v === '') {
+          throw new Error(`Fila ${i + 1}: falta el valor de "${h}".`);
+        }
         const n = Number(v);
         if (!Number.isFinite(n) || !Number.isInteger(n)) {
           throw new Error(`Fila ${i + 1}, columna "${h}": valor inválido "${v}" (se espera entero).`);
@@ -109,8 +121,11 @@ const parseCsv = (rawText: string, kind: CsvKind): ParsedCsv['rows'] => {
         row[h] = n;
       }
     }
-
     rows.push(row);
+  }
+
+  if (rows.length === 0) {
+    throw new Error('No hay filas para cargar. Revisá que las filas tengan jugador_id, jornada y puntos.');
   }
 
   return rows;
