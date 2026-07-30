@@ -100,6 +100,9 @@ const parseCsv = (rawText: string, kind: CsvKind): ParsedCsv['rows'] => {
     const idNum = Number(idRaw);
     if (idRaw === '' || !Number.isInteger(idNum) || idNum <= 0) continue;
 
+    // Sin jornada → no se carga esa fila (permite cargar solo a los que jugaron).
+    if (val(values, 'jornada') === '') continue;
+
     // Solo tomamos las columnas esperadas (ignoramos extras: nombre, stats, etc.).
     const row: CsvRow = {};
     for (const h of expected) {
