@@ -214,9 +214,12 @@ export const useCsvAdmin = (): UseCsvAdminReturn => {
 
       setSuccessCount(parsed.rows.length);
       setParsed(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error uploading CSV:', err);
-      setError(err instanceof Error ? err.message : 'Error al subir los datos');
+      const detalle = [err?.message, err?.details, err?.hint, err?.code]
+        .filter(Boolean)
+        .join(' — ');
+      setError(detalle || 'Error al subir los datos');
     } finally {
       setUploading(false);
     }
