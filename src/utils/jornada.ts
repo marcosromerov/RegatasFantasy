@@ -13,7 +13,7 @@ export const JORNADA_PRUEBA: number | null = null;
  * (ignora la regla mié–sáb 2 AM), pero SIN tocar la jornada real del fixture.
  * Útil para probar/demostrar fuera de la ventana. Poné false para producción.
  */
-export const FORZAR_EDICION_ABIERTA = true;
+export const FORZAR_EDICION_ABIERTA = false;
 
 /**
  * Jornada "actual" para armar equipo = número del próximo partido del fixture.
