@@ -19,8 +19,8 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "single",
+      "favicon": "./assets/images/crbvjpg.jpg"
     },
     "plugins": [
       "expo-router",

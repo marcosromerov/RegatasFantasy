@@ -41,3 +41,14 @@ app-example
 # generated native folders
 /ios
 /android
+
+# supabase CLI cache
+supabase/.temp/
+
+# Claude Code
+.claude/
+
+# scratch / QR helpers
+qr.svg
+qrgen.cjs
+qrsvg.cjs

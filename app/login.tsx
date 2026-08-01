@@ -1,30 +1,89 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, Linking } from 'react-native';
 import { supabase } from '../api/supabase'; // Ajustá la ruta según tu carpeta api
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+// Mismo número que en register.tsx — si cambia, actualizar en ambos.
+const ADMIN_WHATSAPP = '5491122492885';
+
+const buildWhatsappUrl = (email: string) => {
+  const msg = `Hola! Soy ${email} y mi cuenta de Regatas Fantasy todavía no está aprobada.`;
+  return `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+};
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
-  console.log("Intentando conectar con Supabase...");
-  
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email,
-    password: password,
-  });
+    setError('');
+    setPending(false);
 
-  if (error) {
-    console.error("❌ Fallo el login:", error.message);
-    Alert.alert("Error", error.message);
-  } else {
-    console.log("✅ Login exitoso! Usuario:", data.user?.email);
-    router.replace('/'); 
-  }
-};
+    if (!email || !password) {
+      setError('Completá tu email y contraseña.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        const m = signInError.message.toLowerCase();
+        if (m.includes('invalid login credentials')) {
+          setError('Email o contraseña incorrectos.');
+        } else if (m.includes('email not confirmed')) {
+          setError('Tenés que confirmar tu email antes de entrar.');
+        } else {
+          setError('No se pudo iniciar sesión. Probá de nuevo.');
+        }
+        return;
+      }
+
+      if (!data.user) {
+        setError('No se pudo iniciar sesión.');
+        return;
+      }
+
+      const { data: perfil, error: perfilError } = await supabase
+        .from('usuarios')
+        .select('aprobado, Role')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (perfilError) {
+        await supabase.auth.signOut();
+        setError('No se pudo validar tu cuenta.');
+        return;
+      }
+
+      const esAdmin = perfil?.Role === 'admin';
+      if (!perfil || (!perfil.aprobado && !esAdmin)) {
+        await supabase.auth.signOut();
+        setError('Tu cuenta todavía no fue aprobada por el admin.');
+        setPending(true);
+        return;
+      }
+
+      router.replace('/');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const avisarWhatsapp = () => {
+    Linking.openURL(buildWhatsappUrl(email)).catch(() =>
+      setError('No se pudo abrir WhatsApp. Avisá manualmente al admin.')
+    );
+  };
 
   const handleRegister = () => {
     router.push('/register');
@@ -33,8 +92,8 @@ export default function Login() {
     <ScrollView contentContainerStyle={styles.scrollContainer} style={styles.container}>
       {/* Logo */}
       <View style={styles.logoContainer}>
-        <Image 
-          source={require('../assets/images/crbvjpg.jpg')} 
+        <Image
+          source={require('../assets/images/regatas.png')}
           style={styles.logo}
         />
         <View style={styles.titleContainer}>
@@ -78,15 +137,29 @@ export default function Login() {
         </View>
       </View>
         
-        <TouchableOpacity style={styles.boton} onPress={handleLogin}>
+        {error ? (
+          <View style={styles.errorBanner}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {pending ? (
+          <TouchableOpacity style={styles.whatsappBtn} onPress={avisarWhatsapp}>
+            <MaterialCommunityIcons name="whatsapp" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.whatsappText}>Avisar al admin por WhatsApp</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        <TouchableOpacity style={[styles.boton, loading && { opacity: 0.6 }]} onPress={handleLogin} disabled={loading}>
           <View style={styles.botonContent}>
             <Text style={styles.botonFlecha}>➜</Text>
-            <Text style={styles.botonTexto}>Iniciar Sesión</Text>
+            <Text style={styles.botonTexto}>{loading ? 'Ingresando...' : 'Iniciar Sesión'}</Text>
           </View>
         </TouchableOpacity>
 
         {/* Forgot Password */}
-        <TouchableOpacity style={styles.forgotContainer}>
+        <TouchableOpacity style={styles.forgotContainer} onPress={() => router.push('/recuperar')}>
           <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
 
@@ -117,16 +190,10 @@ const styles = StyleSheet.create({
     marginBottom: 50
   },
   logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 130,
+    height: 130,
     marginBottom: 25,
-    resizeMode: 'cover',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4
+    resizeMode: 'contain'
   },
   titleContainer: {
     marginBottom: 10
@@ -234,9 +301,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFEA00',
     fontWeight: 'bold'
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: 18,
+  },
+  errorText: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  whatsappBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#25D366',
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginTop: 10,
+  },
+  whatsappText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   }
 });
-
-function gradient(arg0: number, deg: any, arg2: any, arg3: number, f3f: any, arg5: number, arg6: any, arg7: number) {
-  throw new Error('Function not implemented.');
-}

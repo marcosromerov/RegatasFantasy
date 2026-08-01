@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Navbar } from '../src/components/Home/Navbar';
-import { Sidebar } from '../src/components/Home/sideBar';
+import { PageHeader } from '../src/components/PageHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface Rule {
@@ -13,124 +12,96 @@ interface Rule {
 }
 
 export default function Reglamento() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
 
-  const basicRules: Rule[] = [
+  // 1) Tu equipo
+  const teamRules: Rule[] = [
     {
-      id: 'equipo',
-      title: 'Formación del Equipo',
-      description: 'Cada equipo Fantasy debe estar compuesto por 15 jugadores: 8 Delanteros y 7 Backs. Debes respetar esta formación para que tu equipo sea válido.',
-      points: '15 jugadores totales'
+      id: 'plantel',
+      title: '15 jugadores + 1 Staff',
+      description:
+        'Armás un XV titular con 8 forwards (1 al 8) y 7 backs (9 al 15), y elegís 1 Staff (el cuerpo técnico de un club). Todos suman puntos.',
+      points: '15 + 1',
     },
     {
-      id: 'posiciones',
-      title: 'Posiciones de Juego',
-      description: 'Delanteros (1-8): Pilares, Hooker, Segunda Línea, Flanquistas y Número 8. Backs (9-15): Medio Scrum, Medio Apertura, Centros, Alas y Fullback.',
-      points: '8 Delanteros, 7 Backs'
+      id: 'ventana',
+      title: '¿Cuándo puedo editar?',
+      description:
+        'Podés armar y cambiar tu equipo de miércoles a viernes. El fin de semana queda bloqueado: juega el equipo que dejaste confirmado.',
+      points: 'Mié a Vie',
     },
-    {
-      id: 'puntos-try',
-      title: 'Try (Ensayo)',
-      description: 'Anotar un ensayo vale 5 puntos. Es la forma más importante de anotar en el rugby.',
-      points: '+5 puntos'
-    },
-    {
-      id: 'puntos-conversion',
-      title: 'Conversión',
-      description: 'Después de un try, el equipo puede realizar una conversión (patada) desde el lugar del try. Vale 2 puntos adicionales.',
-      points: '+2 puntos'
-    },
-    {
-      id: 'puntos-penalti',
-      title: 'Penal (Penalti)',
-      description: 'Un penal anotado da 3 puntos al equipo. Se ejecuta por infracciones del equipo contrario.',
-      points: '+3 puntos'
-    },
-    {
-      id: 'puntos-drop',
-      title: 'Drop Goal (Penal de Campo)',
-      description: 'Un drop goal durante el juego vale 1 punto. Es menos común pero válido.',
-      points: '+1 punto'
-    }
   ];
 
+  // 2) Los puntos
   const scoringRules: Rule[] = [
     {
-      id: 'jugador-tries',
-      title: 'Tries Anotados por Jugador',
-      description: 'Cada try anotado por tu jugador suma puntos a tu equipo Fantasy.',
-      points: '5 puntos por try'
+      id: 'puntos-jugador',
+      title: 'Puntos por jugador',
+      description:
+        'Cada jugador tiene un puntaje por fecha según su rendimiento real en la cancha. Lo carga el club después de cada partido.',
     },
     {
-      id: 'conversiones',
-      title: 'Conversiones Exitosas',
-      description: 'Las conversiones ejecutadas por tu jugador cuentan para los puntos Fantasy.',
-      points: '2 puntos por conversión'
+      id: 'tu-puntaje',
+      title: 'Tu puntaje de la fecha',
+      description:
+        'Es la suma de los puntos de tus 15 jugadores, más lo que agreguen tus potenciadores.',
+      points: 'Σ de tus 15',
     },
-    {
-      id: 'penales',
-      title: 'Penales Anotados',
-      description: 'Los penales anotados por tu pateador suman puntos a tu equipo Fantasy.',
-      points: '3 puntos por penal'
-    },
-    {
-      id: 'asistencias',
-      title: 'Asistencias',
-      description: 'El jugador que hace la asistencia para un try recibe puntos adicionales.',
-      points: '+1 punto por asistencia'
-    },
-    {
-      id: 'tackles',
-      title: 'Tackles (Derribos)',
-      description: 'Los tackles efectivos de los defensores suman puntos a tu equipo Fantasy.',
-      points: '+1 punto por tackle'
-    },
-    {
-      id: 'turnover',
-      title: 'Turnovers',
-      description: 'Recuperar el balón (robo de balón, knock-on) suma puntos para tu equipo.',
-      points: '+2 puntos por turnover'
-    }
   ];
 
-  const powerUpRules: Rule[] = [
+  // 3) Potenciadores (todos x2, hasta 2 por fecha)
+  const powerRules: Rule[] = [
     {
-      id: 'capitan',
+      id: 'pot-general',
+      title: 'Hasta 2 por fecha',
+      description:
+        'Desde "Mi XV Inicial" elegís hasta 2 potenciadores. Todos multiplican ×2. Se pueden cambiar hasta el viernes.',
+      points: 'Máx 2 · ×2',
+    },
+    {
+      id: 'pot-capitan',
       title: 'Capitán',
-      description: 'El capitán multiplica por 2 los puntos que obtiene durante el partido.',
-      points: '2x de puntos'
+      description: 'Elegís un jugador y sus puntos de la fecha valen el doble.',
+      points: '×2',
     },
     {
-      id: 'triple',
-      title: 'Triple Capitán',
-      description: 'Boost especial que multiplica por 3 los puntos de un jugador seleccionado.',
-      points: '3x de puntos'
+      id: 'pot-pack',
+      title: 'Pack Potenciador',
+      description: 'Duplica los puntos de tu mejor forward (posiciones 1 a 8) de esa fecha.',
+      points: '×2 forward',
     },
     {
-      id: 'forward',
-      title: 'Forward Power',
-      description: 'Aumenta un 25% los puntos de los delanteros en la alineación.',
-      points: '+25% Delanteros'
+      id: 'pot-linea',
+      title: 'Línea Potenciadora',
+      description: 'Duplica los puntos de tu mejor back (posiciones 9 a 15) de esa fecha.',
+      points: '×2 back',
     },
     {
-      id: 'back',
-      title: 'Back Potenciador',
-      description: 'Aumenta un 25% los puntos de los backs en la alineación.',
-      points: '+25% Backs'
+      id: 'pot-pateador',
+      title: 'Pateador de la Fecha',
+      description: 'Elegís un jugador y sus puntos de la fecha valen el doble.',
+      points: '×2',
     },
+  ];
+
+  // 4) El Staff
+  const staffRules: Rule[] = [
     {
-      id: 'kick',
-      title: 'Kick King',
-      description: 'El pateador obtiene +1 punto por cada tiro de penal o conversión.',
-      points: '+1 extra por patada'
+      id: 'staff',
+      title: '¿Qué es el Staff?',
+      description:
+        'Es el cuerpo técnico de un club. Suma puntos según cómo le va a ese club en la fecha: cuantos más partidos gana, más puntos te da.',
     },
+  ];
+
+  // 5) Ranking
+  const rankingRules: Rule[] = [
     {
-      id: 'defensa',
-      title: 'Def Wall',
-      description: 'Los defensores reciben +1 punto por cada tackle o turnover.',
-      points: '+1 extra en defensa'
-    }
+      id: 'ranking',
+      title: '¿Cómo se gana?',
+      description:
+        'El ranking es la suma de tus puntos en todas las fechas del torneo. Arriba ves el podio y abajo la tabla completa. Gana quien más puntos junta.',
+    },
   ];
 
   const RuleCard = ({ rule, isExpanded }: { rule: Rule; isExpanded: boolean }) => (
@@ -141,10 +112,10 @@ export default function Reglamento() {
     >
       <View style={styles.ruleHeader}>
         <View style={styles.ruleTitle}>
-          <MaterialCommunityIcons 
-            name={isExpanded ? 'chevron-down' : 'chevron-right'} 
-            size={24} 
-            color="#FFEA00" 
+          <MaterialCommunityIcons
+            name={isExpanded ? 'chevron-down' : 'chevron-right'}
+            size={24}
+            color="#FFEA00"
           />
           <Text style={styles.ruleName}>{rule.title}</Text>
         </View>
@@ -154,10 +125,7 @@ export default function Reglamento() {
           </View>
         )}
       </View>
-      
-      {isExpanded && (
-        <Text style={styles.ruleDescription}>{rule.description}</Text>
-      )}
+      {isExpanded && <Text style={styles.ruleDescription}>{rule.description}</Text>}
     </TouchableOpacity>
   );
 
@@ -170,18 +138,9 @@ export default function Reglamento() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Navbar 
-        userName="Reglamento" 
-        onMenuPress={() => setSidebarOpen(true)} 
-      />
+      <PageHeader title="REGLAMENTO" />
 
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
-        onLogout={() => {}} 
-      />
-
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
@@ -189,70 +148,52 @@ export default function Reglamento() {
         {/* INTRO */}
         <View style={styles.introCard}>
           <MaterialCommunityIcons name="rugby" size={40} color="#FFEA00" />
-          <Text style={styles.introTitle}>Bienvenido a Rugby Fantasy</Text>
+          <Text style={styles.introTitle}>Cómo se juega</Text>
           <Text style={styles.introText}>
-            Conoce las reglas del juego y cómo obtener puntos con tu equipo
+            Armás un equipo de 15 jugadores + 1 Staff. Cada fecha sumás los puntos de tu equipo.
+            El que más puntos junta en el torneo, gana.
           </Text>
         </View>
 
-        {/* REGLAS BÁSICAS */}
-        <SectionHeader title="Reglas Básicas" icon="book-outline" />
+        <SectionHeader title="Tu equipo" icon="account-group-outline" />
         <View style={styles.rulesContainer}>
-          {basicRules.map((rule) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              isExpanded={expandedRule === rule.id}
-            />
-          ))}
+          {teamRules.map((r) => <RuleCard key={r.id} rule={r} isExpanded={expandedRule === r.id} />)}
         </View>
 
-        {/* SISTEMA DE PUNTUACIÓN */}
-        <SectionHeader title="Sistema de Puntuación" icon="star-outline" />
+        <SectionHeader title="Los puntos" icon="star-outline" />
         <View style={styles.rulesContainer}>
-          {scoringRules.map((rule) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              isExpanded={expandedRule === rule.id}
-            />
-          ))}
+          {scoringRules.map((r) => <RuleCard key={r.id} rule={r} isExpanded={expandedRule === r.id} />)}
         </View>
 
-        {/* POWER UPS */}
-        <SectionHeader title="Power-Ups (Potenciadores)" icon="lightning-bolt" />
+        <SectionHeader title="Potenciadores" icon="flash-outline" />
         <View style={styles.rulesContainer}>
-          {powerUpRules.map((rule) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              isExpanded={expandedRule === rule.id}
-            />
-          ))}
+          {powerRules.map((r) => <RuleCard key={r.id} rule={r} isExpanded={expandedRule === r.id} />)}
         </View>
 
-        {/* CONSEJOS */}
+        <SectionHeader title="El Staff" icon="whistle-outline" />
+        <View style={styles.rulesContainer}>
+          {staffRules.map((r) => <RuleCard key={r.id} rule={r} isExpanded={expandedRule === r.id} />)}
+        </View>
+
+        <SectionHeader title="Ranking" icon="trophy-outline" />
+        <View style={styles.rulesContainer}>
+          {rankingRules.map((r) => <RuleCard key={r.id} rule={r} isExpanded={expandedRule === r.id} />)}
+        </View>
+
+        {/* CONSEJO */}
         <View style={styles.tipsCard}>
           <View style={styles.tipHeader}>
             <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color="#FFEA00" />
-            <Text style={styles.tipTitle}>Consejos Estratégicos</Text>
+            <Text style={styles.tipTitle}>Consejo</Text>
           </View>
-          <View style={styles.tipItem}>
-            <Text style={styles.tipText}>• Selecciona siempre un Capitán que juegue de titular</Text>
-          </View>
-          <View style={styles.tipItem}>
-            <Text style={styles.tipText}>• Usa tus Power-Ups en jugadores clave del partido</Text>
-          </View>
-          <View style={styles.tipItem}>
-            <Text style={styles.tipText}>• Balancea tu equipo entre ataque (tries) y defensa</Text>
-          </View>
-          <View style={styles.tipItem}>
-            <Text style={styles.tipText}>• Revisa el estado físico de los jugadores antes del partido</Text>
-          </View>
+          <Text style={styles.tipText}>
+            Confirmá tu equipo y elegí tus potenciadores antes del viernes a la noche. Si no,
+            juega tu último equipo confirmado.
+          </Text>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>¡Que gane el mejor equipo!</Text>
+          <Text style={styles.footerText}>¡Que gane el mejor!</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -262,11 +203,11 @@ export default function Reglamento() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a2139',
+    backgroundColor: '#283a82',
   },
   content: {
     flex: 1,
-    backgroundColor: '#1a2139',
+    backgroundColor: '#283a82',
   },
   contentContainer: {
     paddingVertical: 16,
@@ -276,7 +217,7 @@ const styles = StyleSheet.create({
   introCard: {
     marginHorizontal: 16,
     marginBottom: 24,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: '#071037',
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
@@ -391,9 +332,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#10B981',
-  },
-  tipItem: {
-    marginBottom: 10,
   },
   tipText: {
     fontSize: 14,

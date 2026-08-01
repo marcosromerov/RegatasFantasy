@@ -16,7 +16,7 @@ export const Navbar = ({ userName, onMenuPress }: NavbarProps) => (
       <Text style={styles.navTitleName}>{userName|| "Rugbier"}</Text>
     </View>
     <Image
-      source={require('../../../assets/images/crbvjpg.jpg')}
+      source={require('../../../assets/images/regatas.png')}
       style={styles.shieldImage}
     />
   </View>

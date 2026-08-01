@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Navbar } from '../src/components/Home/Navbar';
-import { Sidebar } from '../src/components/Home/sideBar';
+import { PageHeader } from '../src/components/PageHeader';
 import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRankingData } from '../src/hooks/useRankingData';
 
@@ -10,7 +9,6 @@ import { useRankingData } from '../src/hooks/useRankingData';
 import type { RankingItem } from '../src/hooks/useRankingData';
 
 export default function Ranking() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { ranking, loading, error, refetch } = useRankingData();
 
   const getRankColor = (pos: number) => {
@@ -56,16 +54,7 @@ export default function Ranking() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Navbar 
-        userName="Ranking" 
-        onMenuPress={() => setSidebarOpen(true)} 
-      />
-
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)} 
-        onLogout={() => {}} 
-      />
+      <PageHeader title="RANKING" />
 
       {loading ? (
         <View style={styles.centerContainer}>

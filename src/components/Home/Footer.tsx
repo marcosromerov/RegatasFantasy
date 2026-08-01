@@ -1,48 +1,45 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons'; // Expo ya lo trae
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+
+// TODO: reemplazar por los links reales del club.
+const INSTAGRAM_URL = 'https://www.instagram.com/regatasbellavista/';
+const YOUTUBE_URL = 'https://www.youtube.com/@regatasbellavista';
+const ADMIN_WHATSAPP = '5491122492885';
+
+const abrir = (url: string) => {
+  Linking.openURL(url).catch(() => Alert.alert('No se pudo abrir el enlace'));
+};
 
 export const MainFooter = () => {
   const currentYear = new Date().getFullYear();
 
   return (
     <View style={styles.container}>
-      {/* Botón Volver Arriba */}
-      
-      <TouchableOpacity 
-      
-        style={styles.toTopButton} 
-        onPress={() => {/* Lógica para scrollear al inicio */}}
-      >
+      <TouchableOpacity style={styles.toTopButton} activeOpacity={0.7}>
         <Text style={styles.toTopText}>La Vida Es Bella</Text>
       </TouchableOpacity>
 
-      {/* Redes Sociales */}
+      {/* Redes: solo Instagram y YouTube */}
       <View style={styles.socialRow}>
-        <TouchableOpacity style={styles.iconCircle}>
-          <FontAwesome name="facebook" size={20} color="#FFEA00" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconCircle}>
+        <TouchableOpacity style={styles.iconCircle} onPress={() => abrir(INSTAGRAM_URL)}>
           <FontAwesome name="instagram" size={20} color="#FFEA00" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconCircle}>
-          <FontAwesome name="twitter" size={20} color="#FFEA00" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconCircle}>
+        <TouchableOpacity style={styles.iconCircle} onPress={() => abrir(YOUTUBE_URL)}>
           <FontAwesome name="youtube-play" size={20} color="#FFEA00" />
         </TouchableOpacity>
       </View>
 
-      {/* Links de Legales / Info */}
-      <View style={styles.linksRow}>
-        <Text style={styles.link}>Privacidad</Text>
-        <Text style={styles.separator}>|</Text>
-        <Text style={styles.link}>Términos</Text>
-        <Text style={styles.separator}>|</Text>
+      {/* Contacto (abre WhatsApp del admin) */}
+      <TouchableOpacity
+        style={styles.linksRow}
+        onPress={() => abrir(`https://wa.me/${ADMIN_WHATSAPP}`)}
+        activeOpacity={0.7}
+      >
+        <FontAwesome name="whatsapp" size={14} color="#ccc" style={{ marginRight: 6 }} />
         <Text style={styles.link}>Contacto</Text>
-      </View>
+      </TouchableOpacity>
 
-      {/* Copyright o Info del Club */}
       <View style={styles.bottomInfo}>
         <Text style={styles.copyright}>© {currentYear} C.R.B.V. Fantasy Rugby</Text>
         <Text style={styles.version}>Desarrollado por Marcos Romero V. - v1.0.0</Text>
@@ -53,7 +50,7 @@ export const MainFooter = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#223A8C', // Un azul casi negro para el fondo
+    backgroundColor: '#223A8C',
     paddingVertical: 30,
     alignItems: 'center',
     borderTopWidth: 1,
@@ -64,9 +61,9 @@ const styles = StyleSheet.create({
   },
   toTopText: {
     color: '#FFEA00',
-    fontSize:25,
-    fontWeight: 'bold' ,
-    fontStyle: 'italic'
+    fontSize: 25,
+    fontWeight: 'bold',
+    fontStyle: 'italic',
   },
   socialRow: {
     flexDirection: 'row',
@@ -91,11 +88,7 @@ const styles = StyleSheet.create({
   },
   link: {
     color: '#ccc',
-    fontSize: 12,
-    marginHorizontal: 10,
-  },
-  separator: {
-    color: '#444',
+    fontSize: 13,
   },
   bottomInfo: {
     alignItems: 'center',
