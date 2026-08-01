@@ -8,13 +8,14 @@ import { Sidebar } from '../../src/components/Home/sideBar';
 import { InfoSection } from '../../src/components/Home/InfoSection';
 import { Cancha } from '../../src/components/Home/Cancha';
 import { PlayerSelectorModal } from '../../src/components/Home/PLayerSelectionModal';
-import { MainFooter } from '../../src/components/Home/Footer'; // Cambié el nombre para evitar conflictos
+import { MainFooter } from '../../src/components/Home/Footer';
 import { FIXTURE_DATA } from '../../src/components/Home/CalendarModal';
 
 // 2. Lógica (Hooks y Constantes)
 import { useHomeData } from '../../src/hooks/useHomeData';
 import { CalendarModal } from '@/src/components/Home/CalendarModal';
 import { CustomAlert } from '@/src/components/Home/CustomAlert';
+import { isEditWindowOpen } from '../../src/utils/jornada';
 
 
 const PLAYER_POSITIONS = [
@@ -40,6 +41,7 @@ export default function Home() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPosName, setSelectedPosName] = useState("");
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const edicionBloqueada = !isEditWindowOpen();
  
 
   const { 
@@ -60,6 +62,7 @@ const proxima = FIXTURE_DATA.find(f => f.estado === 'pendiente');
 const numeroFecha = proxima ? proxima.fecha.split(' ')[1] : "5";
 
   const onOpenModal = async (id: number) => {
+    if (edicionBloqueada) return;
     const pos = players.find(p => p.id === id);
     if (pos) {
       setSelectedPosName(pos.position);
@@ -99,10 +102,11 @@ const numeroFecha = proxima ? proxima.fecha.split(' ')[1] : "5";
           proximaFecha={numeroFecha}
         />
 
-        <Cancha 
-          players={players} 
-          onPlayerPress={onOpenModal} 
-          onConfirm={handleConfirmar} // <--- PASÁ ESTA FUNCIÓN COMO PROP
+        <Cancha
+          players={players}
+          onPlayerPress={onOpenModal}
+          onConfirm={handleConfirmar}
+          edicionBloqueada={edicionBloqueada}
         />
 
         {/* --- EL FOOTER VA ACÁ (Al final del contenido scrolleable) --- */}
