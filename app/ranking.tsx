@@ -1,15 +1,21 @@
-import React from 'react';
-import { View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, StyleSheet, Text, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../src/components/PageHeader';
 import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRankingData } from '../src/hooks/useRankingData';
 
-// Tipado para los datos viene desde el hook
 import type { RankingItem } from '../src/hooks/useRankingData';
 
 export default function Ranking() {
   const { ranking, loading, error, refetch } = useRankingData();
+  const [busqueda, setBusqueda] = useState('');
+
+  const rankingFiltrado = busqueda.trim()
+    ? ranking.filter(item =>
+        item.teamName.toLowerCase().includes(busqueda.toLowerCase())
+      )
+    : ranking;
 
   const getRankColor = (pos: number) => {
     if (pos === 1) return '#FFEA00'; // Dorado
@@ -119,13 +125,34 @@ export default function Ranking() {
             )}
           </View>
 
+          {/* BUSCADOR */}
+          <View style={styles.searchContainer}>
+            <MaterialCommunityIcons name="magnify" size={20} color="rgba(255,255,255,0.5)" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por nombre..."
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              value={busqueda}
+              onChangeText={setBusqueda}
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+            {busqueda.length > 0 && (
+              <TouchableOpacity onPress={() => setBusqueda('')}>
+                <MaterialCommunityIcons name="close-circle" size={18} color="rgba(255,255,255,0.4)" />
+              </TouchableOpacity>
+            )}
+          </View>
+
           {/* TABLA COMPLETA */}
           <View style={styles.tableContainer}>
             <Text style={styles.sectionTitle}>TABLA GENERAL</Text>
-            {ranking.length > 0 ? (
-              ranking.map((item) => (
+            {rankingFiltrado.length > 0 ? (
+              rankingFiltrado.map((item) => (
                 <RankingRow key={item.id} item={item} />
               ))
+            ) : busqueda.trim() ? (
+              <Text style={styles.noDataText}>Sin resultados para "{busqueda}"</Text>
             ) : (
               <Text style={styles.noDataText}>No hay datos disponibles</Text>
             )}
@@ -189,6 +216,27 @@ const styles = StyleSheet.create({
   barPos: { fontWeight: '900', fontSize: 18, color: '#1a2139' },
   barName: { fontSize: 10, fontWeight: 'bold', color: '#1a2139', marginTop: 5 },
   barPoints: { fontSize: 12, fontWeight: 'bold', color: '#1a2139', marginTop: 3 },
+
+  // Buscador
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 15,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,234,0,0.2)',
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  searchIcon: { marginRight: 8 },
+  searchInput: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
 
   // Estilos Tabla
   tableContainer: { paddingHorizontal: 15 },
