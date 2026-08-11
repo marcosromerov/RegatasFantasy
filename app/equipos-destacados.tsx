@@ -196,6 +196,13 @@ const Top5Tab = ({ equipos, jornada, hayDatos }: { equipos: TopEquipo[]; jornada
 
             {abierto && (
               <View style={t5.jugadoresList}>
+                {/* Staff elegido */}
+                {eq.staffNombre && (
+                  <View style={t5.staffRow}>
+                    <MaterialCommunityIcons name="whistle" size={12} color="rgba(255,255,255,0.5)" />
+                    <Text style={t5.staffText}>{eq.staffNombre}</Text>
+                  </View>
+                )}
                 {/* Badges de potenciadores de equipo */}
                 {(eq.tieneForwardP || eq.tieneBackA) && (
                   <View style={t5.potsRow}>
@@ -371,6 +378,8 @@ const t5 = StyleSheet.create({
   puntosNum: { fontSize: 20, fontWeight: '900', lineHeight: 22 },
   puntosLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 9 },
   jugadoresList: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+  staffRow: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingTop: 10, paddingBottom: 4 },
+  staffText: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600', fontStyle: 'italic' },
   potsRow: { flexDirection: 'row', gap: 6, paddingVertical: 8, flexWrap: 'wrap' },
   potBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,234,0,0.3)' },
   potBadgeText: { color: '#FFEA00', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },

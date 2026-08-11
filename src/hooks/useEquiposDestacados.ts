@@ -75,6 +75,7 @@ export interface TopEquipo {
   jugadores: JugadorTop[];
   tieneForwardP: boolean;
   tieneBackA: boolean;
+  staffNombre: string | null;
 }
 
 export interface JugPuntos {
@@ -226,6 +227,7 @@ export const useEquiposDestacados = () => {
             puntos: row.puntos,
             tieneForwardP: activos.includes('forward_p'),
             tieneBackA: activos.includes('back_a'),
+            staffNombre: row.staff_nombre ?? null,
             jugadores: jugItems
               .map((j) => {
                 const id = Number(j.jugador_id);
