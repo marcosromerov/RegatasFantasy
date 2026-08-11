@@ -9,14 +9,13 @@ import { Cancha } from '../src/components/Home/Cancha';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEquiposDestacados, TopEquipo, JugPuntos } from '../src/hooks/useEquiposDestacados';
 
-type Tab = 'semana' | 'mvp' | 'anio' | 'top5' | 'porequipo';
+type Tab = 'semana' | 'mvp' | 'anio' | 'top5';
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: 'semana',    label: 'Equipo Fecha',  icon: 'calendar-star' },
-  { key: 'mvp',       label: 'MVP Fecha',     icon: 'star-circle' },
-  { key: 'anio',      label: 'XV del Año',    icon: 'trophy' },
-  { key: 'top5',      label: 'Top 5',         icon: 'podium-gold' },
-  { key: 'porequipo', label: 'Por Equipo',    icon: 'shield-half-full' },
+  { key: 'semana', label: 'Equipo Fecha', icon: 'calendar-star' },
+  { key: 'mvp',    label: 'MVP Fecha',   icon: 'star-circle' },
+  { key: 'anio',   label: 'XV del Año',  icon: 'trophy' },
+  { key: 'top5',   label: 'Top 5',       icon: 'podium-gold' },
 ];
 
 export default function EquiposDestacados() {
@@ -62,8 +61,6 @@ export default function EquiposDestacados() {
         <MvpTab mvpData={mvpData} lastJornada={lastJornada} />
       ) : tab === 'top5' ? (
         <Top5Tab equipos={top5Jornada} jornada={lastJornada} hayDatos={hayDatos} />
-      ) : tab === 'porequipo' ? (
-        <PorEquipoTab puntosPorEquipo={puntosPorEquipo} jornada={lastJornada} hayDatos={hayDatos} />
       ) : !hayDatos ? (
         <View style={styles.center}>
           <MaterialCommunityIcons name="clipboard-text-off-outline" size={48} color="rgba(255,255,255,0.4)" />

@@ -71,14 +71,31 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
         setStaffList(staffMapped);
 
         // --- 3. CARGAR EL EQUIPO DE LA JORNADA ACTUAL ---
+        // Si no hay equipo guardado para la jornada actual (ej: miércoles abrió edición),
+        // mostramos el equipo de la jornada anterior para que no quede vacío.
         const jornadaActual = getJornadaActual();
         if (jornadaActual !== null) {
-          const { data: equipoData } = await supabase
+          const { data: equipoActual } = await supabase
             .from('equipo_usuario')
             .select('jugadores, staff_id')
             .eq('user_id', user.id)
             .eq('jornada', jornadaActual)
             .maybeSingle();
+
+          let equipoData = equipoActual;
+
+          if (!equipoActual?.jugadores) {
+            // Fallback: equipo más reciente de jornadas anteriores
+            const { data: equipoAnterior } = await supabase
+              .from('equipo_usuario')
+              .select('jugadores, staff_id')
+              .eq('user_id', user.id)
+              .lt('jornada', jornadaActual)
+              .order('jornada', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            equipoData = equipoAnterior;
+          }
 
           if (equipoData?.jugadores) {
             setPlayers(prev => prev.map(slot => {
