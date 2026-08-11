@@ -6,6 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -97,12 +99,135 @@ export default function Admin() {
           state={staff}
         />
 
-        {/* Card 3: Notificaciones push */}
+        {/* Card 3: MVPs de la fecha */}
+        <MvpAdminCard />
+
+        {/* Card 4: Notificaciones push */}
         <NotifyCard />
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+// =========================================================
+// Subcomponente: card de gestión de MVPs
+// =========================================================
+
+type UploadState = 'idle' | 'uploading' | 'done' | 'error';
+
+const MvpAdminCard = () => {
+  const [jornada, setJornada] = useState('');
+  const [fwdState, setFwdState] = useState<UploadState>('idle');
+  const [tqState,  setTqState]  = useState<UploadState>('idle');
+  const [fwdName, setFwdName]  = useState('');
+  const [tqName,  setTqName]   = useState('');
+  const [error, setError]      = useState<string | null>(null);
+
+  const uploadPhoto = async (slot: 'forward' | 'trescuartos') => {
+    if (!jornada) { setError('Ingresá el número de fecha primero.'); return; }
+    setError(null);
+
+    const input = (globalThis as any).document?.createElement('input');
+    if (!input) return;
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      const setter    = slot === 'forward' ? setFwdState : setTqState;
+      const nameSetter = slot === 'forward' ? setFwdName  : setTqName;
+      setter('uploading');
+
+      const ext  = file.name.split('.').pop() ?? 'jpg';
+      const path = `jornada-${jornada}/${slot}.${ext}`;
+
+      const { error: upErr } = await supabase.storage
+        .from('mvp-fotos')
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (upErr) { setter('error'); setError(upErr.message); return; }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('mvp-fotos')
+        .getPublicUrl(path);
+
+      const col = slot === 'forward' ? 'forward_foto_url' : 'trescuartos_foto_url';
+      const { error: dbErr } = await supabase
+        .from('mvp_jornada')
+        .upsert({ jornada: parseInt(jornada), [col]: publicUrl }, { onConflict: 'jornada' });
+
+      if (dbErr) { setter('error'); setError(dbErr.message); return; }
+
+      setter('done');
+      nameSetter(file.name);
+    };
+  };
+
+  const slotIcon = (state: UploadState) => {
+    if (state === 'uploading') return <ActivityIndicator size="small" color="#283a82" />;
+    if (state === 'done')      return <MaterialCommunityIcons name="check" size={18} color="#283a82" />;
+    if (state === 'error')     return <MaterialCommunityIcons name="alert" size={18} color="#283a82" />;
+    return <MaterialCommunityIcons name="camera-plus-outline" size={18} color="#283a82" />;
+  };
+
+  return (
+    <View style={[styles.card, { marginBottom: 16 }]}>
+      <View style={styles.cardHeader}>
+        <MaterialCommunityIcons name="star-circle-outline" size={24} color="#FFEA00" />
+        <Text style={styles.cardTitle}>Fotos MVP de la fecha</Text>
+      </View>
+
+      <Text style={styles.cardSubtitle}>
+        Ingresá el número de fecha y subí la foto de cada MVP.
+      </Text>
+
+      <TextInput
+        style={mvpAdmin.input}
+        placeholder="Número de fecha (ej: 17)"
+        placeholderTextColor="rgba(255,255,255,0.3)"
+        keyboardType="numeric"
+        value={jornada}
+        onChangeText={(t) => { setJornada(t); setFwdState('idle'); setTqState('idle'); setFwdName(''); setTqName(''); }}
+      />
+
+      <View style={mvpAdmin.uploadRow}>
+        <TouchableOpacity
+          style={[mvpAdmin.uploadBtn, fwdState === 'done' && mvpAdmin.uploadBtnDone]}
+          onPress={() => uploadPhoto('forward')}
+          disabled={fwdState === 'uploading'}
+        >
+          {slotIcon(fwdState)}
+          <View>
+            <Text style={mvpAdmin.uploadLabel}>MVP FORWARD</Text>
+            {fwdName ? <Text style={mvpAdmin.uploadFile} numberOfLines={1}>{fwdName}</Text> : null}
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[mvpAdmin.uploadBtn, tqState === 'done' && mvpAdmin.uploadBtnDone]}
+          onPress={() => uploadPhoto('trescuartos')}
+          disabled={tqState === 'uploading'}
+        >
+          {slotIcon(tqState)}
+          <View>
+            <Text style={mvpAdmin.uploadLabel}>MVP 3/4</Text>
+            {tqName ? <Text style={mvpAdmin.uploadFile} numberOfLines={1}>{tqName}</Text> : null}
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {error && (
+        <View style={styles.errorBox}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#FF6B6B" />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 // =========================================================
 // Subcomponente: card de notificaciones push
@@ -688,5 +813,48 @@ const styles = StyleSheet.create({
     color: '#283a82',
     fontWeight: '900',
     letterSpacing: 1,
+  },
+});
+
+const mvpAdmin = StyleSheet.create({
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 8,
+    color: '#fff',
+    fontSize: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 10,
+  },
+  uploadRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  uploadBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFEA00',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  uploadBtnDone: {
+    backgroundColor: '#10B981',
+  },
+  uploadLabel: {
+    color: '#283a82',
+    fontWeight: '900',
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  uploadFile: {
+    color: '#283a82',
+    fontSize: 10,
+    opacity: 0.7,
+    maxWidth: 90,
   },
 });

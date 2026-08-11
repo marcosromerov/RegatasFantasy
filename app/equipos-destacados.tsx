@@ -5,11 +5,13 @@ import { PageHeader } from '../src/components/PageHeader';
 import { Cancha } from '../src/components/Home/Cancha';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEquiposDestacados } from '../src/hooks/useEquiposDestacados';
+import { MvpSection } from '../src/components/Destacados/MvpSection';
 
 type Tab = 'semana' | 'anio';
 
 export default function EquiposDestacados() {
-  const { equipoSemana, xvAnio, lastJornada, hayDatos, loading } = useEquiposDestacados();
+  const { equipoSemana, xvAnio, lastJornada, hayDatos, mvpData, loading } =
+    useEquiposDestacados();
   const [tab, setTab] = useState<Tab>('semana');
 
   const players = tab === 'semana' ? equipoSemana : xvAnio;
@@ -18,22 +20,31 @@ export default function EquiposDestacados() {
     <SafeAreaView style={styles.container}>
       <PageHeader title="EQUIPOS DESTACADOS" />
 
-      {/* Selector de vista */}
       <View style={styles.tabs}>
         <TouchableOpacity
           style={[styles.tab, tab === 'semana' && styles.tabActive]}
           onPress={() => setTab('semana')}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="calendar-star" size={16} color={tab === 'semana' ? '#283a82' : '#FFEA00'} />
-          <Text style={[styles.tabText, tab === 'semana' && styles.tabTextActive]}>Equipo de la Semana</Text>
+          <MaterialCommunityIcons
+            name="calendar-star"
+            size={16}
+            color={tab === 'semana' ? '#283a82' : '#FFEA00'}
+          />
+          <Text style={[styles.tabText, tab === 'semana' && styles.tabTextActive]}>
+            Equipo de la Semana
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, tab === 'anio' && styles.tabActive]}
           onPress={() => setTab('anio')}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="trophy" size={16} color={tab === 'anio' ? '#283a82' : '#FFEA00'} />
+          <MaterialCommunityIcons
+            name="trophy"
+            size={16}
+            color={tab === 'anio' ? '#283a82' : '#FFEA00'}
+          />
           <Text style={[styles.tabText, tab === 'anio' && styles.tabTextActive]}>XV del Año</Text>
         </TouchableOpacity>
       </View>
@@ -44,9 +55,15 @@ export default function EquiposDestacados() {
         </View>
       ) : !hayDatos ? (
         <View style={styles.center}>
-          <MaterialCommunityIcons name="clipboard-text-off-outline" size={48} color="rgba(255,255,255,0.4)" />
+          <MaterialCommunityIcons
+            name="clipboard-text-off-outline"
+            size={48}
+            color="rgba(255,255,255,0.4)"
+          />
           <Text style={styles.emptyText}>Todavía no hay puntos cargados.</Text>
-          <Text style={styles.emptySub}>Cuando el admin cargue los puntajes de una fecha, aparecen los mejores acá.</Text>
+          <Text style={styles.emptySub}>
+            Cuando el admin cargue los puntajes de una fecha, aparecen los mejores acá.
+          </Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -55,6 +72,7 @@ export default function EquiposDestacados() {
               ? `Los mejores por posición de la Fecha ${lastJornada ?? '-'}`
               : 'Los mejores del año, sumando todas las fechas'}
           </Text>
+
           <Cancha
             players={players}
             onPlayerPress={() => {}}
@@ -62,6 +80,14 @@ export default function EquiposDestacados() {
             edicionAbierta={false}
             readOnly
           />
+
+          {/* MVP + Más elegidos: solo en la pestaña de la semana */}
+          {tab === 'semana' && lastJornada !== null && (
+            <MvpSection
+              mvpData={mvpData}
+              jornada={lastJornada}
+            />
+          )}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -72,7 +98,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#283a82' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
   emptyText: { color: '#fff', fontSize: 16, fontWeight: '700', marginTop: 14, textAlign: 'center' },
-  emptySub: { color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 8, textAlign: 'center', lineHeight: 19 },
+  emptySub: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 19,
+  },
 
   tabs: {
     flexDirection: 'row',

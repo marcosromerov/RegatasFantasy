@@ -1,15 +1,9 @@
-// Edge Function: send-notifications
-// Envía Web Push a dispositivos suscriptos (admins o todos según adminOnly).
-
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// ─── Helpers base64url ────────────────────────────────────────────────────────
 
 function b64urlToBytes(b64url: string): Uint8Array {
   const base64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
@@ -24,8 +18,6 @@ function bytesToB64url(bytes: Uint8Array): string {
     .replace(/=+$/, '');
 }
 
-// ─── VAPID JWT (ES256) ────────────────────────────────────────────────────────
-
 async function signVapidJwt(endpoint: string): Promise<string> {
   const privKeyB64 = Deno.env.get('VAPID_PRIVATE_KEY')!;
   const pubKeyB64  = Deno.env.get('VAPID_PUBLIC_KEY')!;
@@ -36,7 +28,7 @@ async function signVapidJwt(endpoint: string): Promise<string> {
   const exp     = Math.floor(Date.now() / 1000) + 12 * 3600;
   const payload = bytesToB64url(new TextEncoder().encode(JSON.stringify({ aud: origin, exp, sub: subject })));
 
-  const pubBytes = b64urlToBytes(pubKeyB64); // 65 bytes: 0x04 + x(32) + y(32)
+  const pubBytes = b64urlToBytes(pubKeyB64);
   const jwk = {
     kty: 'EC', crv: 'P-256',
     x: bytesToB64url(pubBytes.slice(1, 33)),
@@ -59,9 +51,7 @@ async function signVapidJwt(endpoint: string): Promise<string> {
   return `${header}.${payload}.${bytesToB64url(sig)}`;
 }
 
-// ─── Handler ──────────────────────────────────────────────────────────────────
-
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
   try {
@@ -74,7 +64,6 @@ serve(async (req: Request) => {
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!;
 
-    // Verificar que el llamante sea admin.
     const userClient = createClient(SUPABASE_URL, authHeader.slice(7), {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -92,7 +81,6 @@ serve(async (req: Request) => {
       return new Response('Forbidden', { status: 403, headers: CORS });
     }
 
-    // Leer opciones del body.
     let customTitle = '¡Puntos cargados! 🏉';
     let customBody  = 'Los resultados de la fecha ya están disponibles. Revisá cómo rindió tu equipo.';
     let adminOnly   = true;
@@ -103,11 +91,9 @@ serve(async (req: Request) => {
       if (body?.adminOnly === false) adminOnly = false;
     } catch { /* body vacío */ }
 
-    // Obtener suscripciones según modo.
     let subs: any[] = [];
 
     if (adminOnly) {
-      // Solo admins: buscar IDs de admins primero, luego sus suscripciones.
       const { data: adminUsers } = await adminClient
         .from('usuarios')
         .select('id')
@@ -124,7 +110,6 @@ serve(async (req: Request) => {
         subs = data ?? [];
       }
     } else {
-      // Todos los usuarios.
       const { data, error } = await adminClient
         .from('push_subscriptions')
         .select('id, endpoint, p256dh, auth');
@@ -134,7 +119,7 @@ serve(async (req: Request) => {
 
     if (subs.length === 0) {
       return new Response(
-        JSON.stringify({ sent: 0, failed: 0, message: adminOnly ? 'No hay admins suscriptos.' : 'Sin suscripciones activas.' }),
+        JSON.stringify({ sent: 0, failed: 0, total: 0, message: adminOnly ? 'No hay admins suscriptos.' : 'Sin suscripciones activas.' }),
         { status: 200, headers: { 'Content-Type': 'application/json', ...CORS } },
       );
     }
