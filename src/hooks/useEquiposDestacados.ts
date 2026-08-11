@@ -56,6 +56,31 @@ export interface MasElegido {
   cantidad: number;
 }
 
+export interface JugadorTop {
+  jugador_id: number;
+  posicion_id: number;
+  nombre: string;
+  apellido: string;
+  posicion: string;
+  equipoActual: string;
+  puntos: number;
+}
+
+export interface TopEquipo {
+  user_id: string;
+  nombre: string;
+  puntos: number;
+  jugadores: JugadorTop[];
+}
+
+export interface JugPuntos {
+  id: number;
+  nombre: string;
+  apellido: string;
+  posicion: string;
+  puntos: number;
+}
+
 const armarXV = (scores: Score[]): PlayerPosition[] => {
   const byPos: Record<string, Score[]> = {};
   scores.forEach((s) => {
@@ -86,12 +111,14 @@ const armarXV = (scores: Score[]): PlayerPosition[] => {
 };
 
 export const useEquiposDestacados = () => {
-  const [equipoSemana, setEquipoSemana]   = useState<PlayerPosition[]>([]);
-  const [xvAnio, setXvAnio]               = useState<PlayerPosition[]>([]);
-  const [lastJornada, setLastJornada]     = useState<number | null>(null);
-  const [hayDatos, setHayDatos]           = useState(false);
-  const [mvpData, setMvpData]             = useState<MvpData | null>(null);
-  const [loading, setLoading]             = useState(true);
+  const [equipoSemana, setEquipoSemana]     = useState<PlayerPosition[]>([]);
+  const [xvAnio, setXvAnio]                 = useState<PlayerPosition[]>([]);
+  const [lastJornada, setLastJornada]       = useState<number | null>(null);
+  const [hayDatos, setHayDatos]             = useState(false);
+  const [mvpData, setMvpData]               = useState<MvpData | null>(null);
+  const [top5Jornada, setTop5Jornada]       = useState<TopEquipo[]>([]);
+  const [puntosPorEquipo, setPuntosPorEquipo] = useState<Record<string, JugPuntos[]>>({});
+  const [loading, setLoading]               = useState(true);
 
   useEffect(() => {
     const cargar = async () => {
@@ -157,6 +184,11 @@ export const useEquiposDestacados = () => {
         const ultima = Math.max(...rows.map((r: any) => Number(r.jornada)));
         setLastJornada(ultima);
 
+        // Rendimiento de la última jornada indexado por jugador
+        const rendUltima = new Map<number, number>();
+        rows.filter((r: any) => Number(r.jornada) === ultima)
+          .forEach((r: any) => rendUltima.set(Number(r.jugador_id), Number(r.puntos)));
+
         // XV de la semana
         const semana: Score[] = rows
           .filter((r: any) => Number(r.jornada) === ultima)
@@ -174,6 +206,51 @@ export const useEquiposDestacados = () => {
           .filter((s) => s.jug);
         setXvAnio(armarXV(anio));
 
+        // Top 5 equipos de la jornada
+        const { data: top5Raw } = await supabase.rpc('get_top5_jornada', { p_jornada: ultima });
+        const top5: TopEquipo[] = (top5Raw ?? []).map((row: any) => {
+          const jugItems: Array<{ jugador_id: number; posicion_id: number }> =
+            typeof row.jugadores === 'string' ? JSON.parse(row.jugadores) : (row.jugadores ?? []);
+          return {
+            user_id: row.user_id,
+            nombre: `${row.nombre ?? ''} ${row.apellido ?? ''}`.trim() || 'Usuario',
+            puntos: row.puntos,
+            jugadores: jugItems
+              .map((j) => {
+                const jug = jugById.get(Number(j.jugador_id));
+                return {
+                  jugador_id: Number(j.jugador_id),
+                  posicion_id: Number(j.posicion_id),
+                  nombre: jug?.nombre ?? '',
+                  apellido: jug?.apellido ?? '',
+                  posicion: jug?.posicion ?? '',
+                  equipoActual: jug?.equipoActual ?? '',
+                  puntos: rendUltima.get(Number(j.jugador_id)) ?? 0,
+                };
+              })
+              .sort((a, b) => a.posicion_id - b.posicion_id),
+          };
+        });
+        setTop5Jornada(top5);
+
+        // Puntos por equipo (club)
+        const porEquipo: Record<string, JugPuntos[]> = {};
+        rows.filter((r: any) => Number(r.jornada) === ultima).forEach((r: any) => {
+          const jug = jugById.get(Number(r.jugador_id));
+          if (!jug) return;
+          const club = jug.equipoActual || 'Sin equipo';
+          if (!porEquipo[club]) porEquipo[club] = [];
+          porEquipo[club].push({
+            id: Number(r.jugador_id),
+            nombre: jug.nombre,
+            apellido: jug.apellido,
+            posicion: jug.posicion,
+            puntos: Number(r.puntos),
+          });
+        });
+        Object.values(porEquipo).forEach((list) => list.sort((a, b) => b.puntos - a.puntos));
+        setPuntosPorEquipo(porEquipo);
+
       } catch (err) {
         console.error('Error cargando equipos destacados:', err);
       } finally {
@@ -183,5 +260,5 @@ export const useEquiposDestacados = () => {
     cargar();
   }, []);
 
-  return { equipoSemana, xvAnio, lastJornada, hayDatos, mvpData, loading };
+  return { equipoSemana, xvAnio, lastJornada, hayDatos, mvpData, top5Jornada, puntosPorEquipo, loading };
 };
