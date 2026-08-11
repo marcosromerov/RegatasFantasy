@@ -8,7 +8,7 @@
 -- =========================================================
 create table if not exists public.staff_partidos (
   id           bigserial primary key,
-  staff_id     bigint not null references public."Staff"(id) on delete cascade,
+  staff_id     bigint not null references public.staff(id) on delete cascade,
   fecha        integer not null,
   resultado_p1 char(1) not null check (resultado_p1 in ('G','E','P')),
   resultado_p2 char(1) not null check (resultado_p2 in ('G','E','P')),
@@ -29,7 +29,7 @@ create policy "staff_partidos_select_all"
 -- =========================================================
 alter table public.equipo_usuario
   add column if not exists fecha    integer,
-  add column if not exists staff_id bigint references public."Staff"(id);
+  add column if not exists staff_id bigint references public.staff(id);
 
 do $$
 begin
