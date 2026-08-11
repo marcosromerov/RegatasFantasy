@@ -95,19 +95,39 @@ Deno.serve(async (req: Request) => {
       return new Response('Forbidden', { status: 403, headers: CORS });
     }
 
-    // Leer mensaje opcional del body.
+    // Leer opciones del body.
     let customTitle: string | undefined;
     let customBody: string | undefined;
+    let adminOnly = true; // por defecto: solo admins (modo testing)
     try {
       const body = await req.json();
       customTitle = body?.title;
       customBody  = body?.body;
+      if (body?.adminOnly === false) adminOnly = false;
     } catch { /* body vacío, usamos defaults */ }
 
-    // Traer todas las suscripciones activas.
-    const { data: subs, error: subErr } = await adminClient
+    // Traer suscripciones: solo admins o todas según el flag.
+    let subsQuery = adminClient
       .from('push_subscriptions')
-      .select('id, endpoint, p256dh, auth');
+      .select('id, endpoint, p256dh, auth, user_id');
+
+    if (adminOnly) {
+      // Filtrar solo usuarios con Role = 'admin'.
+      const { data: adminUsers } = await adminClient
+        .from('usuarios')
+        .select('id')
+        .eq('Role', 'admin');
+      const adminIds = (adminUsers ?? []).map((u: any) => u.id);
+      if (adminIds.length === 0) {
+        return new Response(
+          JSON.stringify({ sent: 0, failed: 0, message: 'No hay admins suscriptos.' }),
+          { status: 200, headers: { 'Content-Type': 'application/json', ...CORS } },
+        );
+      }
+      subsQuery = subsQuery.in('user_id', adminIds) as any;
+    }
+
+    const { data: subs, error: subErr } = await subsQuery;
 
     if (subErr) throw subErr;
     if (!subs || subs.length === 0) {

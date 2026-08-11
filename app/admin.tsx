@@ -124,6 +124,7 @@ const NotifyCard = () => {
         body: {
           title: '¡Puntos cargados! 🏉',
           body: 'Los resultados de la fecha ya están disponibles. Revisá cómo rindió tu equipo.',
+          adminOnly: true, // 🧪 testing: solo admins. Cambiar a false para enviar a todos.
         },
       });
 
@@ -144,7 +145,8 @@ const NotifyCard = () => {
       </View>
 
       <Text style={styles.cardSubtitle}>
-        Enviá una notificación push a todos los socios que instalaron la app y aceptaron notificaciones.
+        🧪 <Text style={{ color: '#FFEA00', fontWeight: '700' }}>Modo testing:</Text> solo le llega a usuarios admin.{'\n'}
+        Para enviar a todos los socios, cambiá <Text style={styles.code}>adminOnly</Text> a <Text style={styles.code}>false</Text> en el código.
       </Text>
 
       {state === 'error' && errorMsg && (
