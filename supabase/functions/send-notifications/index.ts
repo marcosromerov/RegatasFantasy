@@ -1,7 +1,7 @@
 // Edge Function: send-notifications
-// Envía Web Push a todos los dispositivos suscriptos.
-// Solo puede llamarla un usuario con Role = 'admin'.
+// Envía Web Push a dispositivos suscriptos (admins o todos según adminOnly).
 
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const CORS = {
@@ -25,21 +25,18 @@ function bytesToB64url(bytes: Uint8Array): string {
 }
 
 // ─── VAPID JWT (ES256) ────────────────────────────────────────────────────────
-// La clave privada VAPID es un raw P-256 scalar de 32 bytes en base64url.
-// La clave pública VAPID es un punto no comprimido P-256: 0x04 + x(32) + y(32).
 
 async function signVapidJwt(endpoint: string): Promise<string> {
-  const privKeyB64  = Deno.env.get('VAPID_PRIVATE_KEY')!;
-  const pubKeyB64   = Deno.env.get('VAPID_PUBLIC_KEY')!;
-  const subject     = `mailto:${Deno.env.get('VAPID_EMAIL')!}`;
+  const privKeyB64 = Deno.env.get('VAPID_PRIVATE_KEY')!;
+  const pubKeyB64  = Deno.env.get('VAPID_PUBLIC_KEY')!;
+  const subject    = `mailto:${Deno.env.get('VAPID_EMAIL')!}`;
 
   const header  = bytesToB64url(new TextEncoder().encode(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));
   const origin  = new URL(endpoint).origin;
   const exp     = Math.floor(Date.now() / 1000) + 12 * 3600;
   const payload = bytesToB64url(new TextEncoder().encode(JSON.stringify({ aud: origin, exp, sub: subject })));
 
-  // Construir JWK desde los bytes de las claves raw.
-  const pubBytes = b64urlToBytes(pubKeyB64); // 65 bytes: 0x04 + x + y
+  const pubBytes = b64urlToBytes(pubKeyB64); // 65 bytes: 0x04 + x(32) + y(32)
   const jwk = {
     kty: 'EC', crv: 'P-256',
     x: bytesToB64url(pubBytes.slice(1, 33)),
@@ -64,7 +61,7 @@ async function signVapidJwt(endpoint: string): Promise<string> {
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-Deno.serve(async (req: Request) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
   try {
@@ -73,9 +70,9 @@ Deno.serve(async (req: Request) => {
       return new Response('Unauthorized', { status: 401, headers: CORS });
     }
 
-    const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
-    const SERVICE_ROLE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const VAPID_PUBLIC_KEY  = Deno.env.get('VAPID_PUBLIC_KEY')!;
+    const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
+    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!;
 
     // Verificar que el llamante sea admin.
     const userClient = createClient(SUPABASE_URL, authHeader.slice(7), {
@@ -96,53 +93,51 @@ Deno.serve(async (req: Request) => {
     }
 
     // Leer opciones del body.
-    let customTitle: string | undefined;
-    let customBody: string | undefined;
-    let adminOnly = true; // por defecto: solo admins (modo testing)
+    let customTitle = '¡Puntos cargados! 🏉';
+    let customBody  = 'Los resultados de la fecha ya están disponibles. Revisá cómo rindió tu equipo.';
+    let adminOnly   = true;
     try {
       const body = await req.json();
-      customTitle = body?.title;
-      customBody  = body?.body;
+      if (body?.title) customTitle = body.title;
+      if (body?.body)  customBody  = body.body;
       if (body?.adminOnly === false) adminOnly = false;
-    } catch { /* body vacío, usamos defaults */ }
+    } catch { /* body vacío */ }
 
-    // Traer suscripciones: solo admins o todas según el flag.
-    let subsQuery = adminClient
-      .from('push_subscriptions')
-      .select('id, endpoint, p256dh, auth, user_id');
+    // Obtener suscripciones según modo.
+    let subs: any[] = [];
 
     if (adminOnly) {
-      // Filtrar solo usuarios con Role = 'admin'.
+      // Solo admins: buscar IDs de admins primero, luego sus suscripciones.
       const { data: adminUsers } = await adminClient
         .from('usuarios')
         .select('id')
         .eq('Role', 'admin');
+
       const adminIds = (adminUsers ?? []).map((u: any) => u.id);
-      if (adminIds.length === 0) {
-        return new Response(
-          JSON.stringify({ sent: 0, failed: 0, message: 'No hay admins suscriptos.' }),
-          { status: 200, headers: { 'Content-Type': 'application/json', ...CORS } },
-        );
+
+      if (adminIds.length > 0) {
+        const { data, error } = await adminClient
+          .from('push_subscriptions')
+          .select('id, endpoint, p256dh, auth')
+          .in('user_id', adminIds);
+        if (error) throw error;
+        subs = data ?? [];
       }
-      subsQuery = subsQuery.in('user_id', adminIds) as any;
+    } else {
+      // Todos los usuarios.
+      const { data, error } = await adminClient
+        .from('push_subscriptions')
+        .select('id, endpoint, p256dh, auth');
+      if (error) throw error;
+      subs = data ?? [];
     }
 
-    const { data: subs, error: subErr } = await subsQuery;
-
-    if (subErr) throw subErr;
-    if (!subs || subs.length === 0) {
+    if (subs.length === 0) {
       return new Response(
-        JSON.stringify({ sent: 0, failed: 0, message: 'Sin suscripciones activas.' }),
+        JSON.stringify({ sent: 0, failed: 0, message: adminOnly ? 'No hay admins suscriptos.' : 'Sin suscripciones activas.' }),
         { status: 200, headers: { 'Content-Type': 'application/json', ...CORS } },
       );
     }
-
-    // Payload JSON que el service worker va a recibir.
-    const notifPayload = JSON.stringify({
-      title: customTitle ?? '¡Puntos cargados! 🏉',
-      body:  customBody  ?? 'Los resultados de la fecha ya están disponibles.',
-      url:   '/',
-    });
 
     let sent = 0;
     let failed = 0;
@@ -152,11 +147,6 @@ Deno.serve(async (req: Request) => {
       subs.map(async (sub) => {
         try {
           const jwt = await signVapidJwt(sub.endpoint);
-
-          // Nota: enviamos el payload SIN cifrar porque requeriría implementar
-          // RFC 8291 (ECDH + AES-128-GCM) en Deno puro. El service worker tiene
-          // un fallback estático para el caso event.data === null.
-          // Para cifrado completo, ver supabase/functions/send-notifications/README.md
           const res = await fetch(sub.endpoint, {
             method: 'POST',
             headers: {
@@ -169,7 +159,6 @@ Deno.serve(async (req: Request) => {
           if (res.ok || res.status === 201) {
             sent++;
           } else if (res.status === 410 || res.status === 404) {
-            // Suscripción vencida: marcarla para eliminar.
             expiredIds.push(sub.id);
             failed++;
           } else {
@@ -181,7 +170,6 @@ Deno.serve(async (req: Request) => {
       }),
     );
 
-    // Limpiar suscripciones vencidas.
     if (expiredIds.length > 0) {
       await adminClient.from('push_subscriptions').delete().in('id', expiredIds);
     }
