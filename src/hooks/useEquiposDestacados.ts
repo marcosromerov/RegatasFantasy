@@ -207,7 +207,8 @@ export const useEquiposDestacados = () => {
         setXvAnio(armarXV(anio));
 
         // Top 5 equipos de la jornada
-        const { data: top5Raw } = await supabase.rpc('get_top5_jornada', { p_jornada: ultima });
+        const { data: top5Raw, error: top5Err } = await supabase.rpc('get_top5_jornada', { p_jornada: ultima });
+        if (top5Err) console.error('[top5] RPC error:', top5Err.message);
         const top5: TopEquipo[] = (top5Raw ?? []).map((row: any) => {
           const jugItems: Array<{ jugador_id: number; posicion_id: number }> =
             typeof row.jugadores === 'string' ? JSON.parse(row.jugadores) : (row.jugadores ?? []);
