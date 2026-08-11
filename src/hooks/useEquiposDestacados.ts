@@ -106,6 +106,46 @@ export const useEquiposDestacados = () => {
         );
         const rows = rend ?? [];
 
+        // MVP se carga siempre, independiente de si hay puntos cargados
+        const { data: latestMvp } = await supabase
+          .from('mvp_jornada')
+          .select('*')
+          .order('jornada', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestMvp) {
+          const fwd = latestMvp.forward_jugador_id ? jugById.get(latestMvp.forward_jugador_id) : null;
+          const tq  = latestMvp.trescuartos_jugador_id ? jugById.get(latestMvp.trescuartos_jugador_id) : null;
+          setMvpData({
+            jornada: latestMvp.jornada,
+            forward: latestMvp.forward_foto_url
+              ? {
+                  jugador_id: fwd?.id ?? 0,
+                  nombre:     fwd?.nombre ?? '',
+                  apellido:   fwd?.apellido ?? '',
+                  posicion:   fwd?.posicion ?? '',
+                  foto_url:   latestMvp.forward_foto_url,
+                  apodo:      latestMvp.forward_apodo ?? null,
+                  peso_kg:    latestMvp.forward_peso_kg ?? null,
+                  altura_cm:  latestMvp.forward_altura_cm ?? null,
+                }
+              : null,
+            trescuartos: latestMvp.trescuartos_foto_url
+              ? {
+                  jugador_id: tq?.id ?? 0,
+                  nombre:     tq?.nombre ?? '',
+                  apellido:   tq?.apellido ?? '',
+                  posicion:   tq?.posicion ?? '',
+                  foto_url:   latestMvp.trescuartos_foto_url,
+                  apodo:      latestMvp.trescuartos_apodo ?? null,
+                  peso_kg:    latestMvp.trescuartos_peso_kg ?? null,
+                  altura_cm:  latestMvp.trescuartos_altura_cm ?? null,
+                }
+              : null,
+          });
+        }
+
         if (rows.length === 0) {
           setHayDatos(false);
           setEquipoSemana(armarXV([]));
@@ -134,52 +174,6 @@ export const useEquiposDestacados = () => {
           .filter((s) => s.jug);
         setXvAnio(armarXV(anio));
 
-        // Auto-computar MVP: mejor forward y mejor 3/4 por puntos de la jornada
-        const FORWARDS = new Set([
-          'Pilar Izquierdo', 'Hooker', 'Pilar Derecho',
-          'Segunda Línea', 'Ala', 'Octavo',
-        ]);
-        const bestFwd = semana
-          .filter((s) => FORWARDS.has(s.jug.posicion))
-          .sort((a, b) => b.puntos - a.puntos)[0] ?? null;
-        const bestTq = semana
-          .filter((s) => !FORWARDS.has(s.jug.posicion))
-          .sort((a, b) => b.puntos - a.puntos)[0] ?? null;
-
-        // Foto desde Supabase Storage (subida por admin)
-        const { data: mvpRow } = await supabase
-          .from('mvp_jornada')
-          .select('forward_foto_url, trescuartos_foto_url')
-          .eq('jornada', ultima)
-          .maybeSingle();
-
-        setMvpData({
-          jornada: ultima,
-          forward: bestFwd
-            ? {
-                jugador_id: bestFwd.jug.id,
-                nombre:     bestFwd.jug.nombre,
-                apellido:   bestFwd.jug.apellido,
-                posicion:   bestFwd.jug.posicion,
-                foto_url:   mvpRow?.forward_foto_url ?? null,
-                apodo:      null,
-                peso_kg:    null,
-                altura_cm:  null,
-              }
-            : null,
-          trescuartos: bestTq
-            ? {
-                jugador_id: bestTq.jug.id,
-                nombre:     bestTq.jug.nombre,
-                apellido:   bestTq.jug.apellido,
-                posicion:   bestTq.jug.posicion,
-                foto_url:   mvpRow?.trescuartos_foto_url ?? null,
-                apodo:      null,
-                peso_kg:    null,
-                altura_cm:  null,
-              }
-            : null,
-        });
       } catch (err) {
         console.error('Error cargando equipos destacados:', err);
       } finally {
