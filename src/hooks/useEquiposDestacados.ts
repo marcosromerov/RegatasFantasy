@@ -64,6 +64,8 @@ export interface JugadorTop {
   posicion: string;
   equipoActual: string;
   puntos: number;
+  esCap: boolean;
+  esPateador: boolean;
 }
 
 export interface TopEquipo {
@@ -71,6 +73,8 @@ export interface TopEquipo {
   nombre: string;
   puntos: number;
   jugadores: JugadorTop[];
+  tieneForwardP: boolean;
+  tieneBackA: boolean;
 }
 
 export interface JugPuntos {
@@ -212,21 +216,30 @@ export const useEquiposDestacados = () => {
         const top5: TopEquipo[] = (top5Raw ?? []).map((row: any) => {
           const jugItems: Array<{ jugador_id: number; posicion_id: number }> =
             typeof row.jugadores === 'string' ? JSON.parse(row.jugadores) : (row.jugadores ?? []);
+          const pots = row.potenciadores ?? {};
+          const activos: string[] = pots.activos ?? [];
+          const capitanId = pots.capitan_id ? Number(pots.capitan_id) : null;
+          const pateadorId = pots.pateador_id ? Number(pots.pateador_id) : null;
           return {
             user_id: row.user_id,
             nombre: `${row.nombre ?? ''} ${row.apellido ?? ''}`.trim() || 'Usuario',
             puntos: row.puntos,
+            tieneForwardP: activos.includes('forward_p'),
+            tieneBackA: activos.includes('back_a'),
             jugadores: jugItems
               .map((j) => {
-                const jug = jugById.get(Number(j.jugador_id));
+                const id = Number(j.jugador_id);
+                const jug = jugById.get(id);
                 return {
-                  jugador_id: Number(j.jugador_id),
+                  jugador_id: id,
                   posicion_id: Number(j.posicion_id),
                   nombre: jug?.nombre ?? '',
                   apellido: jug?.apellido ?? '',
                   posicion: jug?.posicion ?? '',
                   equipoActual: jug?.equipoActual ?? '',
-                  puntos: rendUltima.get(Number(j.jugador_id)) ?? 0,
+                  puntos: rendUltima.get(id) ?? 0,
+                  esCap: capitanId === id,
+                  esPateador: pateadorId === id,
                 };
               })
               .sort((a, b) => a.posicion_id - b.posicion_id),

@@ -196,13 +196,40 @@ const Top5Tab = ({ equipos, jornada, hayDatos }: { equipos: TopEquipo[]; jornada
 
             {abierto && (
               <View style={t5.jugadoresList}>
+                {/* Badges de potenciadores de equipo */}
+                {(eq.tieneForwardP || eq.tieneBackA) && (
+                  <View style={t5.potsRow}>
+                    {eq.tieneForwardP && (
+                      <View style={[t5.potBadge, { backgroundColor: 'rgba(255,234,0,0.15)' }]}>
+                        <Text style={t5.potBadgeText}>⚡ PACK ×1.5</Text>
+                      </View>
+                    )}
+                    {eq.tieneBackA && (
+                      <View style={[t5.potBadge, { backgroundColor: 'rgba(255,234,0,0.15)' }]}>
+                        <Text style={t5.potBadgeText}>⚡ LÍNEA ×1.5</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
                 {eq.jugadores.map((j) => (
                   <View key={j.jugador_id} style={t5.jugRow}>
                     <Text style={t5.jugPos} numberOfLines={1}>{j.posicion_id}</Text>
                     <View style={t5.jugInfo}>
-                      <Text style={t5.jugNombre} numberOfLines={1}>
-                        {j.nombre} {j.apellido}
-                      </Text>
+                      <View style={t5.jugNombreRow}>
+                        <Text style={t5.jugNombre} numberOfLines={1}>
+                          {j.nombre} {j.apellido}
+                        </Text>
+                        {j.esCap && (
+                          <View style={[t5.badge, t5.badgeCap]}>
+                            <Text style={t5.badgeText}>C ×2</Text>
+                          </View>
+                        )}
+                        {j.esPateador && (
+                          <View style={[t5.badge, t5.badgeKick]}>
+                            <Text style={t5.badgeText}>K ×2</Text>
+                          </View>
+                        )}
+                      </View>
                       <View style={t5.barBg}>
                         <View style={[t5.barFill, { width: `${maxPuntos > 0 ? Math.round((j.puntos / maxPuntos) * 100) : 0}%` as any }]} />
                       </View>
@@ -344,10 +371,18 @@ const t5 = StyleSheet.create({
   puntosNum: { fontSize: 20, fontWeight: '900', lineHeight: 22 },
   puntosLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 9 },
   jugadoresList: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+  potsRow: { flexDirection: 'row', gap: 6, paddingVertical: 8, flexWrap: 'wrap' },
+  potBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,234,0,0.3)' },
+  potBadgeText: { color: '#FFEA00', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
   jugRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5 },
   jugPos: { width: 18, color: 'rgba(255,234,0,0.6)', fontSize: 10, fontWeight: '700', textAlign: 'center' },
   jugInfo: { flex: 1 },
-  jugNombre: { color: '#fff', fontSize: 12, fontWeight: '600', marginBottom: 3 },
+  jugNombreRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
+  jugNombre: { color: '#fff', fontSize: 12, fontWeight: '600', flexShrink: 1 },
+  badge: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
+  badgeCap: { backgroundColor: '#FFEA00' },
+  badgeKick: { backgroundColor: '#4fc3f7' },
+  badgeText: { fontSize: 8, fontWeight: '900', color: '#283a82' },
   barBg: { height: 3, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' },
   barFill: { height: 3, backgroundColor: '#FFEA00', borderRadius: 2, minWidth: 4 },
   jugPuntos: { color: '#FFEA00', fontSize: 13, fontWeight: '900', width: 30, textAlign: 'right' },
