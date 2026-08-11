@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { supabase } from '../api/supabase';
 import { setupPwa } from '../src/utils/pwa';
 import { SplashScreen } from '../src/components/SplashScreen';
+import { usePushNotifications } from '../src/hooks/usePushNotifications';
 
 export default function RootLayout() {
   const [session, setSession] = useState<any>(null);
@@ -10,6 +11,9 @@ export default function RootLayout() {
   const [minElapsed, setMinElapsed] = useState(false);
   const router = useRouter();
   const segments = useSegments();
+
+  // Registra la suscripción Web Push cuando hay sesión activa (web only).
+  usePushNotifications(session?.user?.id ?? null);
 
   // PWA (meta tags + service worker en web)
   useEffect(() => {

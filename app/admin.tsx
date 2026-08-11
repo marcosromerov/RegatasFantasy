@@ -14,6 +14,7 @@ import { PageHeader } from '../src/components/PageHeader';
 import { useUserRole } from '../src/hooks/useUserRole';
 import { useCsvAdmin, CsvKind } from '../src/hooks/useCsvAdmin';
 import { usePendingUsers } from '../src/hooks/usePendingUsers';
+import { supabase } from '../api/supabase';
 
 export default function Admin() {
   const router = useRouter();
@@ -95,10 +96,93 @@ export default function Admin() {
           example={`staff_id,jornada,resultado_p1,resultado_p2\n1,3,G,E\n2,3,P,P`}
           state={staff}
         />
+
+        {/* Card 3: Notificaciones push */}
+        <NotifyCard />
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+// =========================================================
+// Subcomponente: card de notificaciones push
+// =========================================================
+type NotifyState = 'idle' | 'sending' | 'success' | 'error';
+
+const NotifyCard = () => {
+  const [state, setState] = useState<NotifyState>('idle');
+  const [result, setResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const notify = async () => {
+    setState('sending');
+    setResult(null);
+    setErrorMsg(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-notifications', {
+        body: {
+          title: '¡Puntos cargados! 🏉',
+          body: 'Los resultados de la fecha ya están disponibles. Revisá cómo rindió tu equipo.',
+        },
+      });
+
+      if (error) throw error;
+      setResult(data);
+      setState('success');
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? 'Error al enviar notificaciones.');
+      setState('error');
+    }
+  };
+
+  return (
+    <View style={[styles.card, { marginBottom: 32 }]}>
+      <View style={styles.cardHeader}>
+        <MaterialCommunityIcons name="bell-ring-outline" size={24} color="#FFEA00" />
+        <Text style={styles.cardTitle}>Notificar usuarios</Text>
+      </View>
+
+      <Text style={styles.cardSubtitle}>
+        Enviá una notificación push a todos los socios que instalaron la app y aceptaron notificaciones.
+      </Text>
+
+      {state === 'error' && errorMsg && (
+        <View style={styles.errorBox}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#FF6B6B" />
+          <Text style={styles.errorText}>{errorMsg}</Text>
+        </View>
+      )}
+
+      {state === 'success' && result && (
+        <View style={styles.successBox}>
+          <MaterialCommunityIcons name="check-circle-outline" size={20} color="#10B981" />
+          <Text style={styles.successText}>
+            Enviado a {result.sent} de {result.total} dispositivos.
+            {result.failed > 0 ? ` (${result.failed} fallaron o estaban vencidos)` : ''}
+          </Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={[styles.btn, styles.btnPrimary, state === 'sending' && styles.btnDisabled]}
+        onPress={notify}
+        disabled={state === 'sending'}
+      >
+        {state === 'sending' ? (
+          <ActivityIndicator size="small" color="#283a82" />
+        ) : (
+          <>
+            <MaterialCommunityIcons name="send-outline" size={18} color="#283a82" />
+            <Text style={styles.btnPrimaryText}>
+              {state === 'success' ? 'REENVIAR NOTIFICACIÓN' : 'NOTIFICAR A TODOS'}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 // =========================================================
 // Subcomponente: card de usuarios pendientes de aprobación
