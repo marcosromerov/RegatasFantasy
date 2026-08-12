@@ -23,8 +23,9 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
     message: '',
   });
 
-  // La edición está abierta miércoles–viernes (hora Argentina).
-  const edicionAbierta = isEdicionAbierta();
+  const [edicionBloqueada, setEdicionBloqueada] = useState(false);
+  // La edición está abierta miércoles–viernes (hora Argentina), salvo que admin la bloquee.
+  const edicionAbierta = isEdicionAbierta() && !edicionBloqueada;
 
   useEffect(() => {
     const initHomeData = async () => {
@@ -33,6 +34,14 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        // --- 0. BLOQUEO ADMIN ---
+        const { data: cfg } = await supabase
+          .from('configuracion')
+          .select('valor')
+          .eq('clave', 'edicion_bloqueada')
+          .maybeSingle();
+        if (cfg?.valor === 'true') setEdicionBloqueada(true);
 
         // --- 1. NOMBRE + PUNTOS DEL USUARIO ---
         const { data: userData } = await supabase
@@ -71,31 +80,14 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
         setStaffList(staffMapped);
 
         // --- 3. CARGAR EL EQUIPO DE LA JORNADA ACTUAL ---
-        // Si no hay equipo guardado para la jornada actual (ej: miércoles abrió edición),
-        // mostramos el equipo de la jornada anterior para que no quede vacío.
         const jornadaActual = getJornadaActual();
         if (jornadaActual !== null) {
-          const { data: equipoActual } = await supabase
+          const { data: equipoData } = await supabase
             .from('equipo_usuario')
             .select('jugadores, staff_id')
             .eq('user_id', user.id)
             .eq('jornada', jornadaActual)
             .maybeSingle();
-
-          let equipoData = equipoActual;
-
-          if (!equipoActual?.jugadores) {
-            // Fallback: equipo más reciente de jornadas anteriores
-            const { data: equipoAnterior } = await supabase
-              .from('equipo_usuario')
-              .select('jugadores, staff_id')
-              .eq('user_id', user.id)
-              .lt('jornada', jornadaActual)
-              .order('jornada', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            equipoData = equipoAnterior;
-          }
 
           if (equipoData?.jugadores) {
             setPlayers(prev => prev.map(slot => {

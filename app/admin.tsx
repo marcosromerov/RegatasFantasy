@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { useUserRole } from '../src/hooks/useUserRole';
 import { useCsvAdmin, CsvKind } from '../src/hooks/useCsvAdmin';
 import { usePendingUsers } from '../src/hooks/usePendingUsers';
 import { supabase } from '../api/supabase';
+import { isEdicionAbierta } from '../src/utils/jornada';
 
 export default function Admin() {
   const router = useRouter();
@@ -102,7 +103,10 @@ export default function Admin() {
         {/* Card 3: MVPs de la fecha */}
         <MvpAdminCard />
 
-        {/* Card 4: Notificaciones push */}
+        {/* Card 4: Bloqueo manual de edición */}
+        <EdicionToggleCard />
+
+        {/* Card 5: Notificaciones push */}
         <NotifyCard />
       </ScrollView>
     </SafeAreaView>
@@ -857,4 +861,140 @@ const mvpAdmin = StyleSheet.create({
     opacity: 0.7,
     maxWidth: 90,
   },
+});
+
+// =========================================================
+// Subcomponente: bloqueo manual de edición
+// =========================================================
+
+const EdicionToggleCard = () => {
+  const [bloqueada, setBloqueada] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // La ventana horaria (mié-vie) determina si el toggle está habilitado
+  const ventanaAbierta = isEdicionAbierta();
+
+  useEffect(() => {
+    supabase
+      .from('configuracion')
+      .select('valor')
+      .eq('clave', 'edicion_bloqueada')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.valor === 'true') setBloqueada(true);
+      });
+  }, []);
+
+  const toggle = async () => {
+    if (!ventanaAbierta || saving) return;
+    const nuevo = !bloqueada;
+    setSaving(true);
+    const { error } = await supabase
+      .from('configuracion')
+      .upsert({ clave: 'edicion_bloqueada', valor: nuevo ? 'true' : 'false' }, { onConflict: 'clave' });
+    if (!error) setBloqueada(nuevo);
+    setSaving(false);
+  };
+
+  return (
+    <View style={tog.card}>
+      <View style={tog.header}>
+        <MaterialCommunityIcons
+          name={bloqueada ? 'lock-outline' : 'lock-open-outline'}
+          size={22}
+          color="#FFEA00"
+        />
+        <Text style={tog.title}>Bloqueo de Edición</Text>
+      </View>
+
+      <Text style={tog.desc}>
+        {ventanaAbierta
+          ? 'Ventana de edición activa (mié–vie). Podés bloquear manualmente.'
+          : 'Fuera de la ventana de edición (sáb–mar). El toggle se habilita el miércoles.'}
+      </Text>
+
+      <TouchableOpacity
+        onPress={toggle}
+        activeOpacity={ventanaAbierta ? 0.8 : 1}
+        style={[tog.row, !ventanaAbierta && tog.rowDisabled]}
+        disabled={!ventanaAbierta || saving}
+      >
+        <Text style={[tog.label, !ventanaAbierta && tog.labelDisabled]}>
+          {bloqueada ? 'Edición BLOQUEADA' : 'Edición ABIERTA'}
+        </Text>
+
+        {/* Toggle pill */}
+        <View style={[tog.pill, bloqueada ? tog.pillOff : tog.pillOn, !ventanaAbierta && tog.pillDisabled]}>
+          <View style={[tog.knob, bloqueada ? tog.knobOff : tog.knobOn]} />
+        </View>
+      </TouchableOpacity>
+
+      {saving && <ActivityIndicator size="small" color="#FFEA00" style={{ marginTop: 8 }} />}
+    </View>
+  );
+};
+
+const tog = StyleSheet.create({
+  card: {
+    backgroundColor: '#0f1d3d',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,234,0,0.15)',
+    padding: 18,
+    marginBottom: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  title: {
+    color: '#FFEA00',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  desc: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  rowDisabled: {
+    opacity: 0.4,
+  },
+  label: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  labelDisabled: {
+    color: 'rgba(255,255,255,0.4)',
+  },
+  pill: {
+    width: 52,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  pillOn: { backgroundColor: '#FFEA00' },
+  pillOff: { backgroundColor: '#FF6B6B' },
+  pillDisabled: { backgroundColor: 'rgba(255,255,255,0.15)' },
+  knob: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#fff',
+  },
+  knobOn: { alignSelf: 'flex-end' },
+  knobOff: { alignSelf: 'flex-start' },
 });
