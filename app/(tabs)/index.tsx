@@ -54,6 +54,7 @@ export default function Home() {
     avisarEdicionCerrada,
     handlePlayerSelect,
     handleConfirmSelection,
+    handleRemovePlayer,
     handleSignOut,
     handleConfirmar,
     alertConfig,
@@ -112,6 +113,7 @@ export default function Home() {
         <Cancha
           players={players}
           onPlayerPress={onOpenModal}
+          onPlayerRemove={edicionAbierta ? handleRemovePlayer : undefined}
           onConfirm={handleConfirmar}
           edicionAbierta={edicionAbierta}
           staffName={selectedStaff?.nombre ?? null}

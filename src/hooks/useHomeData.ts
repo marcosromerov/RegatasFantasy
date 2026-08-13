@@ -261,6 +261,14 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
     setSelectedPositionId(null);
   };
 
+  const handleRemovePlayer = (id: number) => {
+    setPlayers(prev =>
+      prev.map(p =>
+        p.id === id ? { ...p, selected: false, selectedPlayer: undefined } : p
+      )
+    );
+  };
+
   const handleSelectStaff = (staff: { id: number; nombre: string }) => {
     setSelectedStaff(staff);
   };
@@ -393,6 +401,7 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
     fetchPlayersByPosition,
     handlePlayerSelect,
     handleConfirmSelection,
+    handleRemovePlayer,
     handleSignOut,
     cuposUsados,
   };

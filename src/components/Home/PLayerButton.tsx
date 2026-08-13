@@ -1,14 +1,15 @@
 import React from 'react';
-import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Text, Image, StyleSheet, Vibration } from 'react-native';
 import { PlayerPosition } from '../../types/fantasy';
 
 interface PlayerButtonProps {
   player: PlayerPosition;
   onSelect: (id: number) => void;
+  onRemove?: (id: number) => void;
 }
 
-export const PlayerButton = ({ player, onSelect }: PlayerButtonProps) => {
-  
+export const PlayerButton = ({ player, onSelect, onRemove }: PlayerButtonProps) => {
+
   return (
     <TouchableOpacity
       style={[
@@ -16,6 +17,13 @@ export const PlayerButton = ({ player, onSelect }: PlayerButtonProps) => {
         player.selected && styles.playerButtonSelected,
       ]}
       onPress={() => onSelect(player.id)}
+      onLongPress={() => {
+        if (player.selected && onRemove) {
+          Vibration.vibrate(40);
+          onRemove(player.id);
+        }
+      }}
+      delayLongPress={400}
     >
       {/* Badge del equipo rival */}
       <View style={styles.playerTeamOverlay}>

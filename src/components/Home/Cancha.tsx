@@ -8,6 +8,7 @@ import { PlayerPosition } from '../../types/fantasy';
 interface CanchaProps {
   players: PlayerPosition[];
   onPlayerPress: (id: number) => void;
+  onPlayerRemove?: (id: number) => void;
   onConfirm: () => void;
   staffName?: string | null;
   onStaffPress?: () => void;
@@ -15,7 +16,7 @@ interface CanchaProps {
   readOnly?: boolean;
 }
 
-export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPress, edicionAbierta = true, readOnly = false }: CanchaProps) => {
+export const Cancha = ({ players, onPlayerPress, onPlayerRemove, onConfirm, staffName, onStaffPress, edicionAbierta = true, readOnly = false }: CanchaProps) => {
   return (
     <ImageBackground
       source={require('../../../assets/images/Gemini_Generated_Image_ghyme7ghyme7ghym.png')}
@@ -27,7 +28,7 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
         <View style={styles.row}>
           <View style={styles.positionsRow}>
             {players.slice(0, 3).map(p => (
-              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} />
+              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
             ))}
           </View>
         </View>
@@ -36,7 +37,7 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
         <View style={styles.row}>
           <View style={styles.positionsRow}>
             {players.slice(3, 5).map(p => (
-              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} />
+              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
             ))}
           </View>
         </View>
@@ -44,13 +45,13 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
         <View style={styles.row}>
           <View style={styles.positionsRow}>
             {players.slice(5, 6).map(p => (
-              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} />
+              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
             ))}
             {players.slice(7, 8).map(p => (
-              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} />
+              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
             ))}
             {players.slice(6, 7).map(p => (
-              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} />
+              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
             ))}
           </View>
         </View>
@@ -59,7 +60,7 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
         <View style={styles.row}>
           <View style={styles.positionsRowBacksCentral}>
             {players.slice(8, 10).map(p => (
-              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} />
+              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
             ))}
           </View>
         </View>
@@ -68,7 +69,7 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
         <View style={styles.row}>
           <View style={styles.positionsRowBacksCentral}>
             {players.slice(11, 13).map(p => (
-              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} />
+              <PlayerButton key={p.id} player={p} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
             ))}
           </View>
         </View>
@@ -76,9 +77,9 @@ export const Cancha = ({ players, onPlayerPress, onConfirm, staffName, onStaffPr
         {/* Fila Final: Wing (11), Fullback (15) y Wing (14) */}
         <View style={styles.row}>
           <View style={styles.positionsRowBacksWide}>
-            <PlayerButton player={players[10]} onSelect={onPlayerPress} />
-            <PlayerButton player={players[14]} onSelect={onPlayerPress} />
-            <PlayerButton player={players[13]} onSelect={onPlayerPress} />
+            <PlayerButton player={players[10]} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
+            <PlayerButton player={players[14]} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
+            <PlayerButton player={players[13]} onSelect={onPlayerPress} onRemove={onPlayerRemove} />
           </View>
         </View>
       </View>
