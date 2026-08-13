@@ -19,4 +19,5 @@ export interface DBPlayer {
   apellido: string;
   posicion: string;
   equipoActual: string;
+  grupo?: number | null;
 }

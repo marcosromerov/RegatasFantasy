@@ -23,9 +23,10 @@ export default function Admin() {
   const router = useRouter();
   const { isAdmin, loading: roleLoading } = useUserRole();
 
-  // Dos hooks independientes para que cada card maneje su propio estado.
+  // Tres hooks independientes para que cada card maneje su propio estado.
   const puntuaciones = useCsvAdmin();
   const staff = useCsvAdmin();
+  const grupos = useCsvAdmin();
 
   // --- Gating ---
   if (roleLoading) {
@@ -103,7 +104,17 @@ export default function Admin() {
         {/* Card 3: MVPs de la fecha */}
         <MvpAdminCard />
 
-        {/* Card 4: Bloqueo manual de edición */}
+        {/* Card 4: Grupos de jugadores */}
+        <CsvUploaderCard
+          title="Grupos de Jugadores"
+          icon="account-group-outline"
+          kind="grupos"
+          expectedHeaders={['jugador_id', 'grupo']}
+          example={`jugador_id,grupo\n12,1\n7,3\n45,4`}
+          state={grupos}
+        />
+
+        {/* Card 5: Bloqueo manual de edición */}
         <EdicionToggleCard />
 
         {/* Card 5: Notificaciones push */}

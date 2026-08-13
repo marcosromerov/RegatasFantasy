@@ -59,6 +59,7 @@ export default function Home() {
     staffList,
     selectedStaff,
     handleSelectStaff,
+    cuposUsados,
   } = useHomeData(PLAYER_POSITIONS);
 
   const proxima = getProximoPartido();
@@ -124,6 +125,7 @@ export default function Home() {
         positionName={selectedPosName}
         players={filteredPlayers}
         loading={loadingModal}
+        cuposUsados={cuposUsados}
         onSelectPlayer={(p) => {
           handleConfirmSelection(p);
           setModalVisible(false);

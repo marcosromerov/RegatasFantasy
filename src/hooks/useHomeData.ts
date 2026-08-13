@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../api/supabase';
 import { useRouter } from 'expo-router';
 import { PlayerPosition, DBPlayer } from '../types/fantasy';
@@ -17,6 +17,8 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
   const [selectedPositionId, setSelectedPositionId] = useState<number | null>(null);
   const router = useRouter();
   const hasFetched = useRef(false);
+  // mapa jugador_id → grupo (cargado una vez al inicio)
+  const grupoMapRef = useRef<Map<number, number>>(new Map());
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     title: '',
@@ -78,6 +80,16 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
           integrantes: s.integrantes ?? s.Integrantes ?? undefined,
         }));
         setStaffList(staffMapped);
+
+        // --- 2b. MAPA GRUPO POR JUGADOR ---
+        const { data: gruposData } = await supabase
+          .from('jugadores')
+          .select('id, grupo');
+        const gMap = new Map<number, number>();
+        (gruposData ?? []).forEach((j: any) => {
+          if (j.grupo) gMap.set(j.id, j.grupo);
+        });
+        grupoMapRef.current = gMap;
 
         // --- 3. CARGAR EL EQUIPO DE LA JORNADA ACTUAL ---
         const jornadaActual = getJornadaActual();
@@ -143,7 +155,7 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
     try {
       const { data, error } = await supabase
         .from('jugadores')
-        .select('id, nombre, apellido, posicion, equipoActual')
+        .select('id, nombre, apellido, posicion, equipoActual, grupo')
         .eq('posicion', playerPos.position);
 
       if (error) {
@@ -164,6 +176,8 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
     }
   };
 
+  const CUPO_GRUPO: Record<number, number> = { 1: 4, 2: 4, 3: 4, 4: 3 };
+
   const handleConfirmSelection = (selectedPlayer: DBPlayer) => {
     if (selectedPositionId === null) return;
 
@@ -178,6 +192,23 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
         message: `${selectedPlayer.nombre} ${selectedPlayer.apellido} ya está en tu equipo. Elegí otro.`,
       });
       return;
+    }
+
+    // Validar cupo de grupo (excluimos el slot que se está reemplazando)
+    const grupoNuevo = selectedPlayer.grupo ?? grupoMapRef.current.get(selectedPlayer.id);
+    if (grupoNuevo && CUPO_GRUPO[grupoNuevo] !== undefined) {
+      const usados = players.filter(
+        p => p.id !== selectedPositionId && p.selectedPlayer &&
+             (grupoMapRef.current.get(p.selectedPlayer.id) === grupoNuevo)
+      ).length;
+      if (usados >= CUPO_GRUPO[grupoNuevo]) {
+        setAlertConfig({
+          visible: true,
+          title: `CUPO GRUPO ${grupoNuevo} COMPLETO`,
+          message: `Ya tenés ${CUPO_GRUPO[grupoNuevo]} jugadores del Grupo ${grupoNuevo}. No podés agregar más de ese grupo.`,
+        });
+        return;
+      }
     }
 
     setPlayers(prev =>
@@ -298,6 +329,14 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
     }
   };
 
+  // Cupos usados por grupo en el equipo actual (para mostrar en el modal)
+  const cuposUsados: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  players.forEach(p => {
+    if (!p.selectedPlayer) return;
+    const g = grupoMapRef.current.get(p.selectedPlayer.id);
+    if (g && cuposUsados[g] !== undefined) cuposUsados[g]++;
+  });
+
   return {
     userName,
     userPoints,
@@ -319,5 +358,6 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
     handlePlayerSelect,
     handleConfirmSelection,
     handleSignOut,
+    cuposUsados,
   };
 };
