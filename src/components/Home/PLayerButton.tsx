@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, View, Text, Image, StyleSheet, Vibration } from 'react-native';
+import { TouchableOpacity, View, Text, Image, StyleSheet } from 'react-native';
 import { PlayerPosition } from '../../types/fantasy';
 
 interface PlayerButtonProps {
@@ -17,18 +17,22 @@ export const PlayerButton = ({ player, onSelect, onRemove }: PlayerButtonProps) 
         player.selected && styles.playerButtonSelected,
       ]}
       onPress={() => onSelect(player.id)}
-      onLongPress={() => {
-        if (player.selected && onRemove) {
-          Vibration.vibrate(40);
-          onRemove(player.id);
-        }
-      }}
-      delayLongPress={400}
     >
       {/* Badge del equipo rival */}
       <View style={styles.playerTeamOverlay}>
         <Text style={styles.playerTeamText}>{player.vsTeam || 'RBV'}</Text>
       </View>
+
+      {/* Botón quitar jugador */}
+      {player.selected && onRemove && (
+        <TouchableOpacity
+          style={styles.removeBtn}
+          onPress={(e) => { e.stopPropagation?.(); onRemove(player.id); }}
+          hitSlop={{ top: 6, right: 6, bottom: 6, left: 6 }}
+        >
+          <Text style={styles.removeBtnText}>✕</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Badge de puntos (equipos destacados) */}
       {player.selected && player.selectedPlayer?.puntos != null && (
@@ -136,6 +140,19 @@ const styles = StyleSheet.create({
     color: '#FFEA00',
     textAlign: 'center',
   },
+  removeBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 3,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(220,50,50,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  removeBtnText: { color: '#fff', fontSize: 8, fontWeight: '900', lineHeight: 10 },
   ptsBadge: {
     position: 'absolute',
     top: 14,
