@@ -51,32 +51,58 @@ export const PlayerSelectorModal = ({
             <ActivityIndicator size="large" color="#FFEA00" style={{ margin: 40 }} />
           ) : (
             <ScrollView style={styles.playersList}>
-              {players.map((p) => {
-                const grupo = p.grupo ?? null;
-                const usados = grupo ? (cuposUsados[grupo] ?? 0) : 0;
-                const cupoLleno = grupo !== null && grupo !== undefined && usados >= CUPO_GRUPO[grupo];
-                const color = grupo ? GRUPO_COLOR[grupo] : '#999';
+              {[1, 2, 3, 4].map((g) => {
+                const grupo = players.filter(p => (p.grupo ?? 0) === g);
+                if (grupo.length === 0) return null;
+                const usados = cuposUsados[g] ?? 0;
+                const max = CUPO_GRUPO[g];
+                const cupoLleno = usados >= max;
+                const color = GRUPO_COLOR[g];
                 return (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={[styles.playerCard, cupoLleno && styles.playerCardDisabled]}
-                    onPress={() => onSelectPlayer(p)}
-                    activeOpacity={cupoLleno ? 0.5 : 0.8}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.playerName, cupoLleno && styles.textDisabled]}>
-                        {p.nombre} {p.apellido}
+                  <View key={g}>
+                    <View style={[styles.grupoHeader, { borderLeftColor: color }]}>
+                      <Text style={[styles.grupoTitle, { color }]}>Grupo {g}</Text>
+                      <Text style={[styles.grupoCupo, cupoLleno && styles.cupoLleno]}>
+                        {usados}/{max}
                       </Text>
-                      <Text style={styles.playerPosition}>{p.equipoActual}</Text>
                     </View>
-                    {grupo && (
-                      <View style={[styles.grupoBadge, { backgroundColor: color, opacity: cupoLleno ? 0.4 : 1 }]}>
-                        <Text style={styles.grupoBadgeText}>G{grupo}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
+                    {grupo.map((p) => (
+                      <TouchableOpacity
+                        key={p.id}
+                        style={[styles.playerCard, cupoLleno && styles.playerCardDisabled]}
+                        onPress={() => onSelectPlayer(p)}
+                        activeOpacity={cupoLleno ? 0.5 : 0.8}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.playerName, cupoLleno && styles.textDisabled]}>
+                            {p.nombre} {p.apellido}
+                          </Text>
+                          <Text style={styles.playerPosition}>{p.equipoActual}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 );
               })}
+              {/* Jugadores sin grupo asignado */}
+              {players.filter(p => !p.grupo).length > 0 && (
+                <View>
+                  <View style={[styles.grupoHeader, { borderLeftColor: '#666' }]}>
+                    <Text style={[styles.grupoTitle, { color: '#666' }]}>Sin grupo</Text>
+                  </View>
+                  {players.filter(p => !p.grupo).map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={styles.playerCard}
+                      onPress={() => onSelectPlayer(p)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.playerName}>{p.nombre} {p.apellido}</Text>
+                      <Text style={styles.playerPosition}>{p.equipoActual}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </ScrollView>
           )}
         </View>
@@ -107,6 +133,14 @@ const styles = StyleSheet.create({
   cupoCount: { fontSize: 13, fontWeight: '700', color: '#fff', marginTop: 1 },
   cupoLleno: { color: '#FF6B6B' },
   playersList: { padding: 12 },
+  grupoHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderLeftWidth: 3, paddingLeft: 10, paddingVertical: 6,
+    marginTop: 12, marginBottom: 4,
+  },
+  grupoTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  grupoCupo: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.5)' },
+  cupoLleno: { color: '#FF6B6B' },
   playerCard: {
     flexDirection: 'row', alignItems: 'center',
     padding: 14, backgroundColor: 'rgba(255,255,255,0.06)',
