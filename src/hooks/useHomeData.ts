@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../api/supabase';
 import { useRouter } from 'expo-router';
 import { PlayerPosition, DBPlayer } from '../types/fantasy';
 import { getJornadaActual, isEdicionAbierta, MENSAJE_EDICION_CERRADA } from '../utils/jornada';
+
+const draftKey = (userId: string, jornada: number) => `draft_equipo_${userId}_${jornada}`;
 
 export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false) => {
   const [userName, setUserName] = useState<string | null>(null);
@@ -17,8 +20,8 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
   const [selectedPositionId, setSelectedPositionId] = useState<number | null>(null);
   const router = useRouter();
   const hasFetched = useRef(false);
-  // mapa jugador_id → grupo (cargado una vez al inicio)
   const grupoMapRef = useRef<Map<number, number>>(new Map());
+  const draftRef = useRef<{ userId: string; jornada: number } | null>(null);
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
     title: '',
@@ -94,6 +97,8 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
         // --- 3. CARGAR EL EQUIPO DE LA JORNADA ACTUAL ---
         const jornadaActual = getJornadaActual();
         if (jornadaActual !== null) {
+          draftRef.current = { userId: user.id, jornada: jornadaActual };
+
           const { data: equipoData } = await supabase
             .from('equipo_usuario')
             .select('jugadores, staff_id')
@@ -102,6 +107,8 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
             .maybeSingle();
 
           if (equipoData?.jugadores) {
+            // Equipo confirmado en Supabase — descarta cualquier borrador local
+            await AsyncStorage.removeItem(draftKey(user.id, jornadaActual));
             setPlayers(prev => prev.map(slot => {
               const guardado = equipoData.jugadores.find((j: any) => j.posicion_id === slot.id);
               if (guardado) {
@@ -118,11 +125,24 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
               }
               return slot;
             }));
-          }
 
-          if (equipoData?.staff_id) {
-            const st = staffMapped.find(s => s.id === equipoData.staff_id);
-            if (st) setSelectedStaff(st);
+            if (equipoData?.staff_id) {
+              const st = staffMapped.find(s => s.id === equipoData.staff_id);
+              if (st) setSelectedStaff(st);
+            }
+          } else {
+            // Sin equipo en Supabase — intentar restaurar borrador local
+            const raw = await AsyncStorage.getItem(draftKey(user.id, jornadaActual));
+            if (raw) {
+              try {
+                const draft = JSON.parse(raw) as { players: PlayerPosition[]; staffId?: number };
+                setPlayers(draft.players);
+                if (draft.staffId) {
+                  const st = staffMapped.find(s => s.id === draft.staffId);
+                  if (st) setSelectedStaff(st);
+                }
+              } catch { /* borrador corrupto, ignorar */ }
+            }
           }
         }
       } catch (err) {
@@ -135,6 +155,16 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
 
     initHomeData();
   }, []);
+
+  // Persiste el borrador en AsyncStorage cada vez que cambia el equipo en progreso
+  useEffect(() => {
+    if (!draftRef.current) return;
+    const { userId, jornada } = draftRef.current;
+    const tieneAlgo = players.some(p => p.selected);
+    if (!tieneAlgo) return; // no guardar cancha vacía
+    const draft = { players, staffId: selectedStaff?.id };
+    AsyncStorage.setItem(draftKey(userId, jornada), JSON.stringify(draft));
+  }, [players, selectedStaff]);
 
   const fetchPlayersByPosition = async (position: string) => {
     const { data, error } = await supabase
@@ -302,6 +332,11 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
         );
 
       if (error) throw error;
+
+      // Borrar borrador local al confirmar con éxito
+      if (draftRef.current) {
+        await AsyncStorage.removeItem(draftKey(draftRef.current.userId, draftRef.current.jornada));
+      }
 
       router.push({
         pathname: '/miEquipo',
