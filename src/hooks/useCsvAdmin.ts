@@ -167,7 +167,7 @@ export const useCsvAdmin = (): UseCsvAdminReturn => {
         if (upsertError) throw upsertError;
       } else if (kind === 'grupos') {
         const { error: rpcError } = await supabase.rpc('set_grupos', {
-          p_rows: JSON.stringify(parsed.rows),
+          p_rows: parsed.rows,
         });
         if (rpcError) throw rpcError;
       }
