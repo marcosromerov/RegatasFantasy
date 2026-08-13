@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { PlayerPosition, DBPlayer } from '../types/fantasy';
 import { getJornadaActual, isEdicionAbierta, MENSAJE_EDICION_CERRADA } from '../utils/jornada';
 
-export const useHomeData = (initialPositions: PlayerPosition[]) => {
+export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false) => {
   const [userName, setUserName] = useState<string | null>(null);
   const [userPoints, setUserPoints] = useState<number>(0);
   const [userRanking, setUserRanking] = useState<number | null>(null);
@@ -153,16 +153,17 @@ export const useHomeData = (initialPositions: PlayerPosition[]) => {
     setLoadingModal(true);      // Prendemos el spinner del modal
 
     try {
-      const { data, error } = await supabase
+      let q = supabase
         .from('jugadores')
-        .select('id, nombre, apellido, posicion, equipoActual, grupo')
+        .select('id, nombre, apellido, posicion, equipoActual, grupo, activo')
         .eq('posicion', playerPos.position);
+      if (!isAdmin) q = q.eq('activo', true);
+      const { data, error } = await q;
 
       if (error) {
         console.error('[handlePlayerSelect] Supabase error:', error.message, error.details);
         setFilteredPlayers([]);
       } else {
-        // Excluimos los jugadores ya elegidos en OTRA posición (no se puede repetir).
         const yaElegidos = players
           .filter(p => p.id !== id && p.selectedPlayer)
           .map(p => p.selectedPlayer!.id);

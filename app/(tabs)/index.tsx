@@ -12,6 +12,7 @@ import { MainFooter } from '../../src/components/Home/Footer';
 import { getProximoPartido } from '../../src/components/Home/CalendarModal';
 
 import { useHomeData } from '../../src/hooks/useHomeData';
+import { useUserRole } from '../../src/hooks/useUserRole';
 import { CalendarModal } from '@/src/components/Home/CalendarModal';
 import { CustomAlert } from '@/src/components/Home/CustomAlert';
 
@@ -34,6 +35,7 @@ const PLAYER_POSITIONS = [
 ];
 
 export default function Home() {
+  const { isAdmin } = useUserRole();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPosName, setSelectedPosName] = useState("");
@@ -60,7 +62,7 @@ export default function Home() {
     selectedStaff,
     handleSelectStaff,
     cuposUsados,
-  } = useHomeData(PLAYER_POSITIONS);
+  } = useHomeData(PLAYER_POSITIONS, isAdmin);
 
   const proxima = getProximoPartido();
   const numeroFecha = proxima ? proxima.fecha.split(' ')[1] : "-";
@@ -126,6 +128,7 @@ export default function Home() {
         players={filteredPlayers}
         loading={loadingModal}
         cuposUsados={cuposUsados}
+        isAdmin={isAdmin}
         onSelectPlayer={(p) => {
           handleConfirmSelection(p);
           setModalVisible(false);

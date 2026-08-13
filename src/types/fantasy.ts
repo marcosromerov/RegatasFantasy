@@ -20,4 +20,5 @@ export interface DBPlayer {
   posicion: string;
   equipoActual: string;
   grupo?: number | null;
+  activo?: boolean;
 }
