@@ -177,7 +177,7 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
     }
   };
 
-  const CUPO_GRUPO: Record<number, number> = { 1: 4, 2: 4, 3: 4, 4: 3 };
+  const CUPO_GRUPO: Record<number, number> = { 1: 5, 2: 5, 3: 5 };
 
   const handleConfirmSelection = (selectedPlayer: DBPlayer) => {
     if (selectedPositionId === null) return;
@@ -331,7 +331,7 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
   };
 
   // Cupos usados por grupo en el equipo actual (para mostrar en el modal)
-  const cuposUsados: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  const cuposUsados: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
   players.forEach(p => {
     if (!p.selectedPlayer) return;
     const g = grupoMapRef.current.get(p.selectedPlayer.id);

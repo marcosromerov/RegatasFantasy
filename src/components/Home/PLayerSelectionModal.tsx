@@ -4,12 +4,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { DBPlayer } from '../../types/fantasy';
 import { supabase } from '../../../api/supabase';
 
-const CUPO_GRUPO: Record<number, number> = { 1: 4, 2: 4, 3: 4, 4: 3 };
+const CUPO_GRUPO: Record<number, number> = { 1: 5, 2: 5, 3: 5 };
 const GRUPO_COLOR: Record<number, string> = {
   1: '#4CAF50',
   2: '#2196F3',
   3: '#FF9800',
-  4: '#9C27B0',
 };
 
 interface PlayerSelectorModalProps {
@@ -50,7 +49,7 @@ export const PlayerSelectorModal = ({
 
           {/* Cupos por grupo */}
           <View style={styles.cuposRow}>
-            {[1, 2, 3, 4].map(g => {
+            {[1, 2, 3].map(g => {
               const usados = cuposUsados[g] ?? 0;
               const max = CUPO_GRUPO[g];
               const lleno = usados >= max;
@@ -67,7 +66,7 @@ export const PlayerSelectorModal = ({
             <ActivityIndicator size="large" color="#FFEA00" style={{ margin: 40 }} />
           ) : (
             <ScrollView style={styles.playersList}>
-              {[1, 2, 3, 4].map((g) => {
+              {[1, 2, 3].map((g) => {
                 const grupo = players.filter(p => (p.grupo ?? 0) === g);
                 if (grupo.length === 0) return null;
                 const usados = cuposUsados[g] ?? 0;
