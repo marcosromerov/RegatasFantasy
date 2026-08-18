@@ -94,10 +94,11 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
         });
         grupoMapRef.current = gMap;
 
-        // --- 3. CARGAR EL EQUIPO DE LA JORNADA ACTUAL ---
+        // --- 3. CARGAR EL EQUIPO ---
         const jornadaActual = getJornadaActual();
         if (jornadaActual !== null) {
           draftRef.current = { userId: user.id, jornada: jornadaActual };
+          const edicionActualmenteAbierta = isEdicionAbierta();
 
           const { data: equipoData } = await supabase
             .from('equipo_usuario')
@@ -106,11 +107,9 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
             .eq('jornada', jornadaActual)
             .maybeSingle();
 
-          if (equipoData?.jugadores) {
-            // Equipo confirmado en Supabase — descarta cualquier borrador local
-            await AsyncStorage.removeItem(draftKey(user.id, jornadaActual));
+          const applyEquipo = (data: { jugadores: any[]; staff_id?: number | null }) => {
             setPlayers(prev => prev.map(slot => {
-              const guardado = equipoData.jugadores.find((j: any) => j.posicion_id === slot.id);
+              const guardado = data.jugadores.find((j: any) => j.posicion_id === slot.id);
               if (guardado) {
                 return {
                   ...slot,
@@ -125,13 +124,27 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
               }
               return slot;
             }));
-
-            if (equipoData?.staff_id) {
-              const st = staffMapped.find(s => s.id === equipoData.staff_id);
+            if (data.staff_id) {
+              const st = staffMapped.find(s => s.id === data.staff_id);
               if (st) setSelectedStaff(st);
             }
-          } else {
-            // Sin equipo en Supabase — intentar restaurar borrador local
+          };
+
+          if (equipoData?.jugadores) {
+            // Equipo confirmado para esta jornada → úsalo y descarta borrador
+            await AsyncStorage.removeItem(draftKey(user.id, jornadaActual));
+            applyEquipo(equipoData);
+          } else if (!edicionActualmenteAbierta && jornadaActual > 1) {
+            // Edición cerrada y sin equipo nuevo → mostrar equipo de la jornada anterior
+            const { data: equipoAnterior } = await supabase
+              .from('equipo_usuario')
+              .select('jugadores, staff_id')
+              .eq('user_id', user.id)
+              .eq('jornada', jornadaActual - 1)
+              .maybeSingle();
+            if (equipoAnterior?.jugadores) applyEquipo(equipoAnterior);
+          } else if (edicionActualmenteAbierta) {
+            // Edición abierta, sin equipo → intentar restaurar borrador local
             const raw = await AsyncStorage.getItem(draftKey(user.id, jornadaActual));
             if (raw) {
               try {
