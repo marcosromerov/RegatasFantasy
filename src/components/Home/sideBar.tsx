@@ -22,7 +22,7 @@ export const Sidebar = ({ isOpen, onClose, onLogout }: SidebarProps) => {
     { name: 'Mi Equipo', icon: 'users-cog', path: '/miEquipo' },
     { name: 'Ranking', icon: 'chart-bar', path: '/ranking' },
     { name: 'Destacados', icon: 'star', path: '/equipos-destacados' },
-    { name: 'Álbum Figuritas', icon: 'image', path: '/album' },
+    { name: 'Álbum Figuritas', icon: 'image', path: '/album-figuritas' },
     { name: 'Reglamento', icon: 'book-open', path: '/reglamento' },
     { name: 'Configuración', icon: 'cog', path: '/configuracion' },
   ];
