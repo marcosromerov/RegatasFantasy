@@ -29,27 +29,35 @@ async function saveCards(uid: string, cards: Cards) {
 }
 
 // ---------- Sticker slot ----------
-function StickerSlot({ num, card, onToggle, onAddExtra }: {
+function StickerSlot({ num, card, onPress, onReset }: {
   num: number;
   card: { have: boolean; extra: number } | undefined;
-  onToggle: (n: number) => void;
-  onAddExtra: (n: number) => void;
+  onPress: (n: number) => void;
+  onReset: (n: number) => void;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const have = card?.have ?? false;
   const extra = card?.extra ?? 0;
 
-  const press = () => {
+  const bounce = () => {
     Animated.sequence([
       Animated.timing(scale, { toValue: 0.85, duration: 70, useNativeDriver: true }),
       Animated.timing(scale, { toValue: 1.05, duration: 90, useNativeDriver: true }),
       Animated.timing(scale, { toValue: 1, duration: 70, useNativeDriver: true }),
     ]).start();
-    onToggle(num);
   };
 
+  const handlePress = () => { bounce(); onPress(num); };
+  const handleLongPress = () => { bounce(); onReset(num); };
+
   return (
-    <TouchableOpacity onPress={press} activeOpacity={0.8} style={styles.slotWrap}>
+    <TouchableOpacity
+      onPress={handlePress}
+      onLongPress={handleLongPress}
+      delayLongPress={2000}
+      activeOpacity={0.8}
+      style={styles.slotWrap}
+    >
       <Animated.View style={[styles.slot, have && styles.slotHave, { transform: [{ scale }] }]}>
 
         {/* check mark */}
@@ -63,17 +71,6 @@ function StickerSlot({ num, card, onToggle, onAddExtra }: {
           <View style={styles.dupeBadge}>
             <Text style={styles.dupeText}>+{extra}</Text>
           </View>
-        )}
-
-        {/* botón "repetida" — solo visible cuando ya la tenés */}
-        {have && (
-          <TouchableOpacity
-            style={styles.extraBtn}
-            onPress={(e) => { e.stopPropagation?.(); onAddExtra(num); }}
-            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-          >
-            <Text style={styles.extraBtnText}>+R</Text>
-          </TouchableOpacity>
         )}
 
       </Animated.View>
@@ -99,27 +96,27 @@ export default function Album() {
     });
   }, []);
 
-  const toggleHave = useCallback((num: number) => {
+  // 1er tap: marcar como tenida · 2do tap: sumar repetida
+  const handlePress = useCallback((num: number) => {
     if (!userId) return;
     setCards(prev => {
       const key = String(num);
       const cur = prev[key] ?? { have: false, extra: 0 };
-      const updated = {
-        ...prev,
-        [key]: { have: !cur.have, extra: cur.have ? 0 : cur.extra },
-      };
+      const updated = cur.have
+        ? { ...prev, [key]: { ...cur, extra: (cur.extra ?? 0) + 1 } }   // ya la tenés → repetida
+        : { ...prev, [key]: { have: true, extra: 0 } };                  // primera vez → amarilla
       saveCards(userId, updated);
       return updated;
     });
   }, [userId]);
 
-  const addExtra = useCallback((num: number) => {
+  // Long press 2 s: quitar completamente (have=false, extra=0)
+  const handleReset = useCallback((num: number) => {
     if (!userId) return;
     setCards(prev => {
       const key = String(num);
-      const cur = prev[key];
-      if (!cur?.have) return prev;
-      const updated = { ...prev, [key]: { ...cur, extra: (cur.extra ?? 0) + 1 } };
+      if (!prev[key]?.have) return prev;
+      const updated = { ...prev, [key]: { have: false, extra: 0 } };
       saveCards(userId, updated);
       return updated;
     });
@@ -215,8 +212,8 @@ export default function Album() {
               <StickerSlot
                 num={item}
                 card={cards[String(item)]}
-                onToggle={toggleHave}
-                onAddExtra={addExtra}
+                onPress={handlePress}
+                onReset={handleReset}
               />
             )}
             initialNumToRender={60}
@@ -225,7 +222,7 @@ export default function Album() {
           />
           <View style={styles.hint}>
             <Text style={styles.hintText}>
-              Tap = marcar que la tenés · +R = agregar repetida
+              1er tap = la tenés · 2do tap = repetida · mantener 2s = quitar
             </Text>
           </View>
         </>
@@ -326,12 +323,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dupeText: { color: '#fff', fontSize: 7, fontWeight: '900' },
-  extraBtn: {
-    position: 'absolute', bottom: 1, left: 2,
-    backgroundColor: 'rgba(255,107,53,0.85)',
-    borderRadius: 4, paddingHorizontal: 3, paddingVertical: 1,
-  },
-  extraBtnText: { color: '#fff', fontSize: 7, fontWeight: '900' },
   repList: { padding: 16, paddingBottom: 40 },
   repRow: {
     flexDirection: 'row', alignItems: 'center',
