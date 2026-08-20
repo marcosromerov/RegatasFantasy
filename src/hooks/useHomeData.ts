@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../api/supabase';
 import { useRouter } from 'expo-router';
 import { PlayerPosition, DBPlayer } from '../types/fantasy';
-import { getJornadaActual, isEdicionAbierta, MENSAJE_EDICION_CERRADA } from '../utils/jornada';
+import { getJornadaActual, isEdicionAbierta, getEditingWindowStart, MENSAJE_EDICION_CERRADA } from '../utils/jornada';
 
 const draftKey = (userId: string, jornada: number) => `draft_equipo_${userId}_${jornada}`;
 
@@ -148,11 +148,19 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
             const raw = await AsyncStorage.getItem(draftKey(user.id, jornadaActual));
             if (raw) {
               try {
-                const draft = JSON.parse(raw) as { players: PlayerPosition[]; staffId?: number };
-                setPlayers(draft.players);
-                if (draft.staffId) {
-                  const st = staffMapped.find(s => s.id === draft.staffId);
-                  if (st) setSelectedStaff(st);
+                const draft = JSON.parse(raw) as { players: PlayerPosition[]; staffId?: number; savedAt?: number };
+                // Solo restaurar si el draft fue guardado dentro de la ventana de edición actual.
+                // Sin savedAt = draft viejo/viciado generado durante el período cerrado → descartar.
+                const windowStart = getEditingWindowStart();
+                const esValido = typeof draft.savedAt === 'number' && draft.savedAt >= windowStart.getTime();
+                if (esValido) {
+                  setPlayers(draft.players);
+                  if (draft.staffId) {
+                    const st = staffMapped.find(s => s.id === draft.staffId);
+                    if (st) setSelectedStaff(st);
+                  }
+                } else {
+                  await AsyncStorage.removeItem(draftKey(user.id, jornadaActual));
                 }
               } catch { /* borrador corrupto, ignorar */ }
             }
@@ -169,15 +177,29 @@ export const useHomeData = (initialPositions: PlayerPosition[], isAdmin = false)
     initHomeData();
   }, []);
 
-  // Persiste el borrador en AsyncStorage cada vez que cambia el equipo en progreso
+  // Persiste el borrador solo cuando la edición está abierta
   useEffect(() => {
     if (!draftRef.current) return;
+    if (!edicionAbierta) return; // edición cerrada = mostramos equipo anterior, no persistir
     const { userId, jornada } = draftRef.current;
     const tieneAlgo = players.some(p => p.selected);
-    if (!tieneAlgo) return; // no guardar cancha vacía
-    const draft = { players, staffId: selectedStaff?.id };
+    if (!tieneAlgo) return;
+    const draft = { players, staffId: selectedStaff?.id, savedAt: Date.now() };
     AsyncStorage.setItem(draftKey(userId, jornada), JSON.stringify(draft));
-  }, [players, selectedStaff]);
+  }, [players, selectedStaff, edicionAbierta]);
+
+  // Cuando la ventana de edición se abre mientras la app ya está corriendo (martes→miércoles),
+  // limpiamos el equipo anterior que se mostraba en modo "solo lectura" y borramos drafts viejos.
+  const prevEdicionAbRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (prevEdicionAbRef.current === false && edicionAbierta === true && draftRef.current) {
+      setPlayers(prev => prev.map(p => ({ ...p, selected: false, selectedPlayer: undefined })));
+      setSelectedStaff(null);
+      const { userId, jornada } = draftRef.current;
+      AsyncStorage.removeItem(draftKey(userId, jornada));
+    }
+    prevEdicionAbRef.current = edicionAbierta;
+  }, [edicionAbierta]);
 
   const fetchPlayersByPosition = async (position: string) => {
     const { data, error } = await supabase

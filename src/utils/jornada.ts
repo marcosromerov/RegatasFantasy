@@ -65,6 +65,19 @@ export const isEdicionAbierta = (today: Date = new Date()): boolean => {
   return false;
 };
 
+/**
+ * Inicio de la ventana de edición actual (miércoles 00:00 hora Argentina).
+ * Útil para validar si un draft fue guardado durante la ventana vigente.
+ */
+export const getEditingWindowStart = (today: Date = new Date()): Date => {
+  const dia = diaSemanaArgentina(today);
+  // Días desde el último miércoles: Mié=0, Jue=1, Vie=2, Sáb=3, Dom=4, Lun=5, Mar=6
+  const daysBack = dia >= 3 ? dia - 3 : dia + 4;
+  const windowStart = new Date(today.getTime() - daysBack * 24 * 60 * 60 * 1000);
+  windowStart.setUTCHours(3, 0, 0, 0); // 00:00 Argentina = 03:00 UTC
+  return windowStart;
+};
+
 /** Mensaje para mostrar cuando la edición está cerrada. */
 export const MENSAJE_EDICION_CERRADA =
   'La edición del equipo está cerrada. Podés armar tu equipo de miércoles al sábado a las 2 AM.';
