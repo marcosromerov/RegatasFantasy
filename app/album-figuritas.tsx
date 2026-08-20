@@ -54,7 +54,7 @@ function StickerSlot({ num, card, onPress, onReset }: {
     <TouchableOpacity
       onPress={handlePress}
       onLongPress={handleLongPress}
-      delayLongPress={2000}
+      delayLongPress={1000}
       activeOpacity={0.8}
       style={styles.slotWrap}
     >
