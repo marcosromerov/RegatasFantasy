@@ -19,7 +19,7 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
 ];
 
 export default function EquiposDestacados() {
-  const { equipoSemana, xvAnio, lastJornada, hayDatos, mvpData, top5Jornada, puntosPorEquipo, loading } =
+  const { equipoSemana, xvAnio, lastJornada, hayDatos, mvpData, mvpHistory, top5Jornada, puntosPorEquipo, loading } =
     useEquiposDestacados();
   const [tab, setTab] = useState<Tab>('semana');
 
@@ -58,7 +58,7 @@ export default function EquiposDestacados() {
           <ActivityIndicator size="large" color="#FFEA00" />
         </View>
       ) : tab === 'mvp' ? (
-        <MvpTab mvpData={mvpData} lastJornada={lastJornada} />
+        <MvpTab mvpData={mvpData} mvpHistory={mvpHistory} lastJornada={lastJornada} />
       ) : tab === 'top5' ? (
         <Top5Tab equipos={top5Jornada} jornada={lastJornada} hayDatos={hayDatos} />
       ) : !hayDatos ? (
@@ -91,10 +91,19 @@ export default function EquiposDestacados() {
 
 // ─── Tab MVP ──────────────────────────────────────────────────────────────────
 
-const MvpTab = ({ mvpData, lastJornada }: { mvpData: ReturnType<typeof useEquiposDestacados>['mvpData']; lastJornada: number | null }) => {
+const MvpTab = ({
+  mvpData,
+  mvpHistory,
+  lastJornada,
+}: {
+  mvpData: ReturnType<typeof useEquiposDestacados>['mvpData'];
+  mvpHistory: ReturnType<typeof useEquiposDestacados>['mvpHistory'];
+  lastJornada: number | null;
+}) => {
   const jornada = mvpData?.jornada ?? lastJornada;
   return (
     <ScrollView contentContainerStyle={mvp.scroll} showsVerticalScrollIndicator={false}>
+      {/* ── MVP actual ── */}
       <View style={mvp.header}>
         <View style={mvp.headerLine} />
         <MaterialCommunityIcons name="star-circle" size={18} color="#FFEA00" />
@@ -106,7 +115,51 @@ const MvpTab = ({ mvpData, lastJornada }: { mvpData: ReturnType<typeof useEquipo
         <MvpCard label="MEJOR FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
         <MvpCard label="MEJOR 3/4"     player={mvpData?.trescuartos ?? null} fotoUri={mvpData?.trescuartos?.foto_url ?? null} />
       </View>
+
+      {/* ── Historial ── */}
+      {mvpHistory.length > 0 && (
+        <>
+          <View style={mvp.histHeader}>
+            <View style={mvp.headerLine} />
+            <Text style={mvp.histHeaderText}>HISTORIAL</Text>
+            <View style={mvp.headerLine} />
+          </View>
+          {mvpHistory.map((item) => (
+            <View key={item.jornada} style={mvp.histCard}>
+              <Text style={mvp.histJornada}>FECHA {item.jornada}</Text>
+              <View style={mvp.histRow}>
+                <MvpMiniCard label="FORWARD" player={item.forward} />
+                <MvpMiniCard label="3/4"     player={item.trescuartos} />
+              </View>
+            </View>
+          ))}
+        </>
+      )}
     </ScrollView>
+  );
+};
+
+// Tarjeta compacta para el historial
+const MvpMiniCard = ({ label, player }: { label: string; player: { nombre: string; apellido: string; foto_url?: string | null } | null }) => {
+  const [imgErr, setImgErr] = useState(false);
+  return (
+    <View style={mvp.miniCard}>
+      <View style={mvp.miniPhotoBox}>
+        {player?.foto_url && !imgErr ? (
+          <Image source={{ uri: player.foto_url }} style={mvp.miniPhoto} resizeMode="cover" onError={() => setImgErr(true)} />
+        ) : (
+          <View style={mvp.miniPhotoPlaceholder}>
+            <MaterialCommunityIcons name="account-outline" size={28} color="rgba(255,234,0,0.2)" />
+          </View>
+        )}
+      </View>
+      <View style={mvp.miniInfo}>
+        <Text style={mvp.miniLabel}>{label}</Text>
+        <Text style={mvp.miniName} numberOfLines={1}>
+          {player ? `${player.nombre} ${player.apellido}`.toUpperCase() : 'POR DEFINIR'}
+        </Text>
+      </View>
+    </View>
   );
 };
 
@@ -364,6 +417,19 @@ const mvp = StyleSheet.create({
   playerName: { color: '#fff', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   playerPos: { color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 2 },
   clubText: { color: 'rgba(255,255,255,0.3)', fontSize: 7, fontWeight: '700', letterSpacing: 1, textAlign: 'center', paddingVertical: 5, backgroundColor: '#112045' },
+  // historial
+  histHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24, marginBottom: 12 },
+  histHeaderText: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+  histCard: { backgroundColor: '#0B1730', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', padding: 12, marginBottom: 10 },
+  histJornada: { color: 'rgba(255,234,0,0.6)', fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 10 },
+  histRow: { flexDirection: 'row', gap: 10 },
+  miniCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 8 },
+  miniPhotoBox: { width: 44, height: 44, borderRadius: 8, overflow: 'hidden' },
+  miniPhoto: { width: '100%', height: '100%' },
+  miniPhotoPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
+  miniInfo: { flex: 1 },
+  miniLabel: { color: 'rgba(255,234,0,0.5)', fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  miniName: { color: '#fff', fontSize: 10, fontWeight: '700', marginTop: 2 },
 });
 
 const t5 = StyleSheet.create({

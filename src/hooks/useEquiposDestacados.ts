@@ -121,6 +121,7 @@ export const useEquiposDestacados = () => {
   const [lastJornada, setLastJornada]       = useState<number | null>(null);
   const [hayDatos, setHayDatos]             = useState(false);
   const [mvpData, setMvpData]               = useState<MvpData | null>(null);
+  const [mvpHistory, setMvpHistory]         = useState<MvpData[]>([]);
   const [top5Jornada, setTop5Jornada]       = useState<TopEquipo[]>([]);
   const [puntosPorEquipo, setPuntosPorEquipo] = useState<Record<string, JugPuntos[]>>({});
   const [loading, setLoading]               = useState(true);
@@ -138,44 +139,48 @@ export const useEquiposDestacados = () => {
         );
         const rows = rend ?? [];
 
-        // MVP se carga siempre, independiente de si hay puntos cargados
-        const { data: latestMvp } = await supabase
+        // MVP: traemos todas las jornadas para mostrar historial
+        const { data: allMvp } = await supabase
           .from('mvp_jornada')
           .select('*')
-          .order('jornada', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .order('jornada', { ascending: false });
 
-        if (latestMvp) {
-          const fwd = latestMvp.forward_jugador_id ? jugById.get(latestMvp.forward_jugador_id) : null;
-          const tq  = latestMvp.trescuartos_jugador_id ? jugById.get(latestMvp.trescuartos_jugador_id) : null;
-          setMvpData({
-            jornada: latestMvp.jornada,
-            forward: latestMvp.forward_foto_url
+        const parseMvp = (row: any): MvpData => {
+          const fwd = row.forward_jugador_id ? jugById.get(row.forward_jugador_id) : null;
+          const tq  = row.trescuartos_jugador_id ? jugById.get(row.trescuartos_jugador_id) : null;
+          return {
+            jornada: row.jornada,
+            forward: row.forward_foto_url || row.forward_jugador_id
               ? {
-                  jugador_id: fwd?.id ?? 0,
+                  jugador_id: fwd?.id ?? row.forward_jugador_id ?? 0,
                   nombre:     fwd?.nombre ?? '',
                   apellido:   fwd?.apellido ?? '',
                   posicion:   fwd?.posicion ?? '',
-                  foto_url:   latestMvp.forward_foto_url,
-                  apodo:      latestMvp.forward_apodo ?? null,
-                  peso_kg:    latestMvp.forward_peso_kg ?? null,
-                  altura_cm:  latestMvp.forward_altura_cm ?? null,
+                  foto_url:   row.forward_foto_url ?? null,
+                  apodo:      row.forward_apodo ?? null,
+                  peso_kg:    row.forward_peso_kg ?? null,
+                  altura_cm:  row.forward_altura_cm ?? null,
                 }
               : null,
-            trescuartos: latestMvp.trescuartos_foto_url
+            trescuartos: row.trescuartos_foto_url || row.trescuartos_jugador_id
               ? {
-                  jugador_id: tq?.id ?? 0,
+                  jugador_id: tq?.id ?? row.trescuartos_jugador_id ?? 0,
                   nombre:     tq?.nombre ?? '',
                   apellido:   tq?.apellido ?? '',
                   posicion:   tq?.posicion ?? '',
-                  foto_url:   latestMvp.trescuartos_foto_url,
-                  apodo:      latestMvp.trescuartos_apodo ?? null,
-                  peso_kg:    latestMvp.trescuartos_peso_kg ?? null,
-                  altura_cm:  latestMvp.trescuartos_altura_cm ?? null,
+                  foto_url:   row.trescuartos_foto_url ?? null,
+                  apodo:      row.trescuartos_apodo ?? null,
+                  peso_kg:    row.trescuartos_peso_kg ?? null,
+                  altura_cm:  row.trescuartos_altura_cm ?? null,
                 }
               : null,
-          });
+          };
+        };
+
+        if (allMvp && allMvp.length > 0) {
+          const parsed = allMvp.map(parseMvp);
+          setMvpData(parsed[0]);          // la más reciente va al tab principal
+          setMvpHistory(parsed.slice(1)); // el resto al historial
         }
 
         if (rows.length === 0) {
@@ -276,5 +281,5 @@ export const useEquiposDestacados = () => {
     cargar();
   }, []);
 
-  return { equipoSemana, xvAnio, lastJornada, hayDatos, mvpData, top5Jornada, puntosPorEquipo, loading };
+  return { equipoSemana, xvAnio, lastJornada, hayDatos, mvpData, mvpHistory, top5Jornada, puntosPorEquipo, loading };
 };

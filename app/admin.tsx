@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,11 @@ import {
   ActivityIndicator,
   TextInput,
   Platform,
+  Image,
+  Modal,
+  FlatList,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -128,76 +132,150 @@ export default function Admin() {
 // Subcomponente: card de gestión de MVPs
 // =========================================================
 
-type UploadState = 'idle' | 'uploading' | 'done' | 'error';
+interface SlotState {
+  jugadorId: number | null;
+  jugadorNombre: string;
+  localUri: string | null;   // imagen elegida del celular aún no subida
+  remoteUrl: string | null;  // URL ya guardada en Supabase
+  uploading: boolean;
+}
+
+const EMPTY_SLOT: SlotState = { jugadorId: null, jugadorNombre: '', localUri: null, remoteUrl: null, uploading: false };
 
 const MvpAdminCard = () => {
-  const [jornada, setJornada] = useState('');
-  const [fwdState, setFwdState] = useState<UploadState>('idle');
-  const [tqState,  setTqState]  = useState<UploadState>('idle');
-  const [fwdName, setFwdName]  = useState('');
-  const [tqName,  setTqName]   = useState('');
-  const [error, setError]      = useState<string | null>(null);
+  const [jornada, setJornada]         = useState('');
+  const [fwd, setFwd]                 = useState<SlotState>(EMPTY_SLOT);
+  const [tq, setTq]                   = useState<SlotState>(EMPTY_SLOT);
+  const [saving, setSaving]           = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [success, setSuccess]         = useState(false);
 
-  const uploadPhoto = async (slot: 'forward' | 'trescuartos') => {
+  // Buscador de jugadores
+  const [jugadores, setJugadores]     = useState<{ id: number; nombre: string; apellido: string; posicion: string }[]>([]);
+  const [pickerSlot, setPickerSlot]   = useState<'forward' | 'trescuartos' | null>(null);
+  const [search, setSearch]           = useState('');
+
+  // Historial
+  const [historial, setHistorial]     = useState<{ jornada: number; forward: string; trescuartos: string }[]>([]);
+
+  useEffect(() => {
+    supabase.from('jugadores').select('id, nombre, apellido, posicion').then(({ data }) => {
+      setJugadores(data ?? []);
+    });
+    supabase.from('mvp_jornada').select('jornada, forward_foto_url, trescuartos_foto_url')
+      .order('jornada', { ascending: false }).then(({ data }) => {
+        setHistorial((data ?? []).map((r: any) => ({
+          jornada: r.jornada,
+          forward: r.forward_foto_url ?? '',
+          trescuartos: r.trescuartos_foto_url ?? '',
+        })));
+      });
+  }, []);
+
+  const pickImage = async (slot: 'forward' | 'trescuartos') => {
     if (!jornada) { setError('Ingresá el número de fecha primero.'); return; }
     setError(null);
 
-    const input = (globalThis as any).document?.createElement('input');
-    if (!input) return;
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.click();
+    if (Platform.OS !== 'web') {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) { setError('Permiso de galería denegado.'); return; }
+    }
 
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsEditing: true,
+      aspect: [3, 4],
+    });
 
-      const setter    = slot === 'forward' ? setFwdState : setTqState;
-      const nameSetter = slot === 'forward' ? setFwdName  : setTqName;
-      setter('uploading');
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
 
-      const ext  = file.name.split('.').pop() ?? 'jpg';
-      const path = `jornada-${jornada}/${slot}.${ext}`;
-
-      const { error: upErr } = await supabase.storage
-        .from('mvp-fotos')
-        .upload(path, file, { upsert: true, contentType: file.type });
-
-      if (upErr) { setter('error'); setError(upErr.message); return; }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('mvp-fotos')
-        .getPublicUrl(path);
-
-      const col = slot === 'forward' ? 'forward_foto_url' : 'trescuartos_foto_url';
-      const { error: dbErr } = await supabase
-        .from('mvp_jornada')
-        .upsert({ jornada: parseInt(jornada), [col]: publicUrl }, { onConflict: 'jornada' });
-
-      if (dbErr) { setter('error'); setError(dbErr.message); return; }
-
-      setter('done');
-      nameSetter(file.name);
-    };
+    const setter = slot === 'forward' ? setFwd : setTq;
+    setter(prev => ({ ...prev, localUri: asset.uri, remoteUrl: null }));
   };
 
-  const slotIcon = (state: UploadState) => {
-    if (state === 'uploading') return <ActivityIndicator size="small" color="#283a82" />;
-    if (state === 'done')      return <MaterialCommunityIcons name="check" size={18} color="#283a82" />;
-    if (state === 'error')     return <MaterialCommunityIcons name="alert" size={18} color="#283a82" />;
-    return <MaterialCommunityIcons name="camera-plus-outline" size={18} color="#283a82" />;
+  const uploadSlot = async (slot: 'forward' | 'trescuartos', state: SlotState): Promise<string | null> => {
+    if (!state.localUri) return state.remoteUrl;
+    const setter = slot === 'forward' ? setFwd : setTq;
+    setter(prev => ({ ...prev, uploading: true }));
+
+    try {
+      const ext  = state.localUri.split('.').pop()?.split('?')[0] ?? 'jpg';
+      const path = `jornada-${jornada}/${slot}-${Date.now()}.${ext}`;
+
+      if (Platform.OS === 'web') {
+        // En web: fetch → blob → upload
+        const resp = await fetch(state.localUri);
+        const blob = await resp.blob();
+        const { error: upErr } = await supabase.storage.from('mvp-fotos').upload(path, blob, { upsert: true, contentType: blob.type });
+        if (upErr) throw upErr;
+      } else {
+        // En nativo: FormData con el uri directamente
+        const formData = new FormData();
+        formData.append('file', { uri: state.localUri, name: `foto.${ext}`, type: `image/${ext}` } as any);
+        const { error: upErr } = await supabase.storage.from('mvp-fotos').upload(path, formData, { upsert: true });
+        if (upErr) throw upErr;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('mvp-fotos').getPublicUrl(path);
+      setter(prev => ({ ...prev, uploading: false, remoteUrl: publicUrl }));
+      return publicUrl;
+    } catch (e: any) {
+      setter(prev => ({ ...prev, uploading: false }));
+      throw e;
+    }
+  };
+
+  const guardar = async () => {
+    if (!jornada) { setError('Ingresá el número de fecha.'); return; }
+    if (!fwd.jugadorId && !tq.jugadorId) { setError('Seleccioná al menos un jugador.'); return; }
+    setSaving(true); setError(null); setSuccess(false);
+    try {
+      const fwdUrl = await uploadSlot('forward', fwd);
+      const tqUrl  = await uploadSlot('trescuartos', tq);
+
+      const { error: dbErr } = await supabase.from('mvp_jornada').upsert({
+        jornada: parseInt(jornada),
+        forward_jugador_id:       fwd.jugadorId ?? undefined,
+        forward_foto_url:         fwdUrl ?? undefined,
+        trescuartos_jugador_id:   tq.jugadorId ?? undefined,
+        trescuartos_foto_url:     tqUrl ?? undefined,
+      }, { onConflict: 'jornada' });
+      if (dbErr) throw dbErr;
+
+      setSuccess(true);
+      // actualizar historial local
+      setHistorial(prev => {
+        const jorNum = parseInt(jornada);
+        const sin = prev.filter(h => h.jornada !== jorNum);
+        return [{ jornada: jorNum, forward: fwdUrl ?? '', trescuartos: tqUrl ?? '' }, ...sin]
+          .sort((a, b) => b.jornada - a.jornada);
+      });
+    } catch (e: any) {
+      setError(e?.message ?? 'Error al guardar.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const jugFiltrados = jugadores.filter(j =>
+    `${j.nombre} ${j.apellido}`.toLowerCase().includes(search.toLowerCase())
+  ).slice(0, 8);
+
+  const slotLabel = (state: SlotState) => {
+    if (state.jugadorNombre) return state.jugadorNombre;
+    return 'Elegir jugador';
   };
 
   return (
     <View style={[styles.card, { marginBottom: 16 }]}>
       <View style={styles.cardHeader}>
         <MaterialCommunityIcons name="star-circle-outline" size={24} color="#FFEA00" />
-        <Text style={styles.cardTitle}>Fotos MVP de la fecha</Text>
+        <Text style={styles.cardTitle}>MVP de la fecha</Text>
       </View>
 
-      <Text style={styles.cardSubtitle}>
-        Ingresá el número de fecha y subí la foto de cada MVP.
-      </Text>
+      <Text style={styles.cardSubtitle}>Número de fecha, jugador y foto de cada MVP.</Text>
 
       <TextInput
         style={mvpAdmin.input}
@@ -205,41 +283,150 @@ const MvpAdminCard = () => {
         placeholderTextColor="rgba(255,255,255,0.3)"
         keyboardType="numeric"
         value={jornada}
-        onChangeText={(t) => { setJornada(t); setFwdState('idle'); setTqState('idle'); setFwdName(''); setTqName(''); }}
+        onChangeText={(t) => { setJornada(t); setFwd(EMPTY_SLOT); setTq(EMPTY_SLOT); setSuccess(false); }}
       />
 
-      <View style={mvpAdmin.uploadRow}>
-        <TouchableOpacity
-          style={[mvpAdmin.uploadBtn, fwdState === 'done' && mvpAdmin.uploadBtnDone]}
-          onPress={() => uploadPhoto('forward')}
-          disabled={fwdState === 'uploading'}
-        >
-          {slotIcon(fwdState)}
-          <View>
-            <Text style={mvpAdmin.uploadLabel}>MVP FORWARD</Text>
-            {fwdName ? <Text style={mvpAdmin.uploadFile} numberOfLines={1}>{fwdName}</Text> : null}
-          </View>
-        </TouchableOpacity>
+      {/* Slots forward y 3/4 */}
+      {(['forward', 'trescuartos'] as const).map(slot => {
+        const state  = slot === 'forward' ? fwd : tq;
+        const setter = slot === 'forward' ? setFwd : setTq;
+        const label  = slot === 'forward' ? 'MVP FORWARD' : 'MVP 3/4';
+        return (
+          <View key={slot} style={mvpAdmin.slotBox}>
+            <Text style={mvpAdmin.slotTitle}>{label}</Text>
+            <View style={mvpAdmin.slotRow}>
+              {/* Foto preview / pick */}
+              <TouchableOpacity style={mvpAdmin.photoBox} onPress={() => pickImage(slot)}>
+                {state.localUri ? (
+                  <Image source={{ uri: state.localUri }} style={mvpAdmin.photoImg} />
+                ) : state.remoteUrl ? (
+                  <Image source={{ uri: state.remoteUrl }} style={mvpAdmin.photoImg} />
+                ) : (
+                  <MaterialCommunityIcons name="camera-plus-outline" size={28} color="rgba(255,234,0,0.5)" />
+                )}
+                {state.uploading && (
+                  <View style={mvpAdmin.photoOverlay}>
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[mvpAdmin.uploadBtn, tqState === 'done' && mvpAdmin.uploadBtnDone]}
-          onPress={() => uploadPhoto('trescuartos')}
-          disabled={tqState === 'uploading'}
-        >
-          {slotIcon(tqState)}
-          <View>
-            <Text style={mvpAdmin.uploadLabel}>MVP 3/4</Text>
-            {tqName ? <Text style={mvpAdmin.uploadFile} numberOfLines={1}>{tqName}</Text> : null}
+              {/* Jugador */}
+              <TouchableOpacity
+                style={mvpAdmin.jugBtn}
+                onPress={() => { setPickerSlot(slot); setSearch(''); }}
+              >
+                <MaterialCommunityIcons name="account-search-outline" size={16} color={state.jugadorId ? '#FFEA00' : 'rgba(255,255,255,0.4)'} />
+                <Text style={[mvpAdmin.jugBtnText, state.jugadorId && mvpAdmin.jugBtnTextSel]} numberOfLines={2}>
+                  {slotLabel(state)}
+                </Text>
+                {state.jugadorId && (
+                  <TouchableOpacity onPress={() => setter(prev => ({ ...prev, jugadorId: null, jugadorNombre: '' }))}>
+                    <MaterialCommunityIcons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableOpacity>
-      </View>
+        );
+      })}
 
+      {/* Errores / éxito */}
       {error && (
         <View style={styles.errorBox}>
           <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#FF6B6B" />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
+      {success && (
+        <View style={styles.successBox}>
+          <MaterialCommunityIcons name="check-circle-outline" size={18} color="#10B981" />
+          <Text style={styles.successText}>MVP guardado correctamente.</Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={[styles.btn, styles.btnPrimary, (saving || fwd.uploading || tq.uploading) && styles.btnDisabled]}
+        onPress={guardar}
+        disabled={saving || fwd.uploading || tq.uploading}
+      >
+        {saving ? <ActivityIndicator size="small" color="#283a82" /> : (
+          <>
+            <MaterialCommunityIcons name="content-save-outline" size={18} color="#283a82" />
+            <Text style={styles.btnPrimaryText}>GUARDAR MVP</Text>
+          </>
+        )}
+      </TouchableOpacity>
+
+      {/* Historial */}
+      {historial.length > 0 && (
+        <View style={mvpAdmin.histSection}>
+          <Text style={mvpAdmin.histTitle}>HISTORIAL</Text>
+          {historial.map(h => (
+            <View key={h.jornada} style={mvpAdmin.histRow}>
+              <Text style={mvpAdmin.histJornada}>Fecha {h.jornada}</Text>
+              <View style={mvpAdmin.histPhotos}>
+                {h.forward ? <Image source={{ uri: h.forward }} style={mvpAdmin.histPhoto} /> : <View style={mvpAdmin.histPhotoEmpty} />}
+                {h.trescuartos ? <Image source={{ uri: h.trescuartos }} style={mvpAdmin.histPhoto} /> : <View style={mvpAdmin.histPhotoEmpty} />}
+              </View>
+              <TouchableOpacity onPress={() => {
+                setJornada(String(h.jornada));
+                setFwd({ ...EMPTY_SLOT, remoteUrl: h.forward || null });
+                setTq({ ...EMPTY_SLOT, remoteUrl: h.trescuartos || null });
+                setSuccess(false); setError(null);
+              }}>
+                <MaterialCommunityIcons name="pencil-outline" size={18} color="rgba(255,234,0,0.5)" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Modal buscador de jugadores */}
+      <Modal visible={pickerSlot !== null} transparent animationType="slide" onRequestClose={() => setPickerSlot(null)}>
+        <View style={mvpAdmin.modalOverlay}>
+          <View style={mvpAdmin.modalBox}>
+            <View style={mvpAdmin.modalHeader}>
+              <Text style={mvpAdmin.modalTitle}>
+                {pickerSlot === 'forward' ? 'Seleccionar Forward' : 'Seleccionar 3/4'}
+              </Text>
+              <TouchableOpacity onPress={() => setPickerSlot(null)}>
+                <MaterialCommunityIcons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={mvpAdmin.searchInput}
+              placeholder="Buscar por nombre…"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={search}
+              onChangeText={setSearch}
+              autoFocus
+            />
+            <FlatList
+              data={jugFiltrados}
+              keyExtractor={j => String(j.id)}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={mvpAdmin.jugRow}
+                  onPress={() => {
+                    const setter = pickerSlot === 'forward' ? setFwd : setTq;
+                    setter(prev => ({ ...prev, jugadorId: item.id, jugadorNombre: `${item.nombre} ${item.apellido}` }));
+                    setPickerSlot(null);
+                  }}
+                >
+                  <View style={mvpAdmin.jugRowInfo}>
+                    <Text style={mvpAdmin.jugRowNombre}>{item.nombre} {item.apellido}</Text>
+                    <Text style={mvpAdmin.jugRowPos}>{item.posicion}</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={18} color="rgba(255,255,255,0.3)" />
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={mvpAdmin.sep} />}
+              keyboardShouldPersistTaps="handled"
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -841,37 +1028,160 @@ const mvpAdmin = StyleSheet.create({
     fontSize: 14,
     paddingHorizontal: 12,
     paddingVertical: 9,
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  uploadRow: {
+  slotBox: {
+    marginBottom: 14,
+  },
+  slotTitle: {
+    color: '#FFEA00',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  slotRow: {
     flexDirection: 'row',
     gap: 10,
+    alignItems: 'center',
   },
-  uploadBtn: {
+  photoBox: {
+    width: 64,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,234,0,0.3)',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  photoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  photoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  jugBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFEA00',
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 48,
   },
-  uploadBtnDone: {
-    backgroundColor: '#10B981',
+  jugBtnText: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.35)',
+    fontSize: 13,
   },
-  uploadLabel: {
-    color: '#283a82',
+  jugBtnTextSel: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  // historial
+  histSection: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.07)',
+    paddingTop: 12,
+  },
+  histTitle: {
+    color: 'rgba(255,255,255,0.35)',
+    fontSize: 9,
     fontWeight: '900',
+    letterSpacing: 1.5,
+    marginBottom: 10,
+  },
+  histRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  histJornada: {
+    color: 'rgba(255,234,0,0.6)',
     fontSize: 11,
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    width: 55,
   },
-  uploadFile: {
-    color: '#283a82',
-    fontSize: 10,
-    opacity: 0.7,
-    maxWidth: 90,
+  histPhotos: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
   },
+  histPhoto: {
+    width: 32,
+    height: 40,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  histPhotoEmpty: {
+    width: 32,
+    height: 40,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderStyle: 'dashed',
+  },
+  // modal buscador
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalBox: {
+    backgroundColor: '#1a2a5e',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    color: '#FFEA00',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  searchInput: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    color: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  jugRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  jugRowInfo: { flex: 1 },
+  jugRowNombre: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  jugRowPos: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
+  sep: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
 });
 
 // =========================================================
