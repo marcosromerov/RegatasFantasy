@@ -246,7 +246,7 @@ export default function Album() {
                 <Text style={styles.stepCount}>{cards[String(n)]?.extra ?? 0}</Text>
 
                 {/* agregar una */}
-                <TouchableOpacity style={styles.stepBtn} onPress={() => addExtra(n)}>
+                <TouchableOpacity style={styles.stepBtn} onPress={() => handlePress(n)}>
                   <Text style={styles.stepBtnText}>+</Text>
                 </TouchableOpacity>
               </View>

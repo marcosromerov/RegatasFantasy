@@ -425,7 +425,7 @@ const mvp = StyleSheet.create({
   cardBar: { height: 4, backgroundColor: '#FFEA00' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
   labelText: { color: '#FFEA00', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  photoBox: { width: '100%', aspectRatio: 0.75 },
+  photoBox: { width: '100%', aspectRatio: 0.75, maxHeight: 220 },
   photo: { width: '100%', height: '100%' },
   photoPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)' },
   nameBox: { padding: 10, backgroundColor: '#1a2e5a' },

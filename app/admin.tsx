@@ -1215,6 +1215,18 @@ const mvpAdmin = StyleSheet.create({
   jugRowNombre: { color: '#fff', fontSize: 14, fontWeight: '700' },
   jugRowPos: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
   sep: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
+  empateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  empateText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    flex: 1,
+  },
 });
 
 // =========================================================
