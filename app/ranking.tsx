@@ -38,11 +38,7 @@ export default function Ranking() {
         </View>
         <View>
           <Text style={styles.teamName}>{item.teamName}</Text>
-          {item.change === null ? (
-            <Text style={styles.changeNew}>NUEVO</Text>
-          ) : item.change === 0 ? (
-            <Text style={styles.changeEqual}>— Sin cambios</Text>
-          ) : (
+          {item.change === null || item.change === 0 ? null : (
             <View style={styles.changeRow}>
               <MaterialCommunityIcons
                 name={item.change > 0 ? 'chevron-up' : 'chevron-down'}
