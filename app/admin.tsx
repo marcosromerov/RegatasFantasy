@@ -118,6 +118,9 @@ export default function Admin() {
           state={grupos}
         />
 
+        {/* Card 6: Jugadores */}
+        <JugadoresAdminCard />
+
         {/* Card 5: Bloqueo manual de edición */}
         <EdicionToggleCard />
 
@@ -1363,4 +1366,345 @@ const tog = StyleSheet.create({
   },
   knobOn: { alignSelf: 'flex-end' },
   knobOff: { alignSelf: 'flex-start' },
+});
+
+// =========================================================
+// Subcomponente: gestión de jugadores
+// =========================================================
+
+const POSICIONES = [
+  'Pilar Izquierdo', 'Hooker', 'Pilar Derecho',
+  'Segunda Línea', 'Ala', 'Octavo',
+  'Medio Scrum', 'Apertura', 'Wing', 'Centro', 'Fullback',
+];
+
+const GRUPOS = [1, 2, 3, 4];
+
+interface Jugador {
+  id: number;
+  nombre: string;
+  apellido: string;
+  posicion: string;
+  grupo: number | null;
+  activo: boolean;
+}
+
+const JUGADOR_VACIO = { nombre: '', apellido: '', posicion: POSICIONES[0], grupo: 1, activo: true };
+
+const JugadoresAdminCard = () => {
+  const [modo, setModo] = useState<'menu' | 'crear' | 'buscar' | 'editar'>('menu');
+  const [form, setForm] = useState<typeof JUGADOR_VACIO>({ ...JUGADOR_VACIO });
+  const [editId, setEditId] = useState<number | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [resultados, setResultados] = useState<Jugador[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ tipo: 'ok' | 'err'; texto: string } | null>(null);
+
+  const [showPosPicker, setShowPosPicker] = useState(false);
+  const [showGrupoPicker, setShowGrupoPicker] = useState(false);
+
+  const resetMsg = () => setMsg(null);
+
+  const buscar = async (q: string) => {
+    setBusqueda(q);
+    if (q.trim().length < 2) { setResultados([]); return; }
+    setBuscando(true);
+    const { data } = await supabase
+      .from('jugadores')
+      .select('id, nombre, apellido, posicion, grupo, activo')
+      .or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%`)
+      .order('apellido')
+      .limit(20);
+    setResultados(data ?? []);
+    setBuscando(false);
+  };
+
+  const abrirEdicion = (j: Jugador) => {
+    setEditId(j.id);
+    setForm({ nombre: j.nombre, apellido: j.apellido, posicion: j.posicion, grupo: j.grupo ?? 1, activo: j.activo });
+    setModo('editar');
+    setMsg(null);
+  };
+
+  const guardar = async () => {
+    if (!form.nombre.trim() || !form.apellido.trim()) {
+      setMsg({ tipo: 'err', texto: 'Nombre y apellido son obligatorios.' });
+      return;
+    }
+    setSaving(true); setMsg(null);
+    try {
+      if (modo === 'crear') {
+        const { error } = await supabase.from('jugadores').insert({
+          nombre: form.nombre.trim(),
+          apellido: form.apellido.trim(),
+          posicion: form.posicion,
+          grupo: form.grupo,
+          activo: true,
+        });
+        if (error) throw error;
+        setMsg({ tipo: 'ok', texto: 'Jugador creado.' });
+        setForm({ ...JUGADOR_VACIO });
+      } else {
+        const { error } = await supabase.from('jugadores').update({
+          nombre: form.nombre.trim(),
+          apellido: form.apellido.trim(),
+          posicion: form.posicion,
+          grupo: form.grupo,
+          activo: form.activo,
+        }).eq('id', editId!);
+        if (error) throw error;
+        setMsg({ tipo: 'ok', texto: 'Jugador actualizado.' });
+        // refrescar lista
+        setBusqueda(b => b);
+        buscar(busqueda);
+      }
+    } catch (e: any) {
+      setMsg({ tipo: 'err', texto: e.message ?? 'Error al guardar.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const volver = () => { setModo('menu'); setMsg(null); setBusqueda(''); setResultados([]); };
+
+  // Formulario compartido crear/editar
+  const FormJugador = () => (
+    <View style={jug.form}>
+      <Text style={jug.label}>Nombre</Text>
+      <TextInput
+        style={jug.input}
+        value={form.nombre}
+        onChangeText={v => setForm(f => ({ ...f, nombre: v }))}
+        placeholder="Nombre"
+        placeholderTextColor="rgba(255,255,255,0.3)"
+      />
+      <Text style={jug.label}>Apellido</Text>
+      <TextInput
+        style={jug.input}
+        value={form.apellido}
+        onChangeText={v => setForm(f => ({ ...f, apellido: v }))}
+        placeholder="Apellido"
+        placeholderTextColor="rgba(255,255,255,0.3)"
+      />
+
+      <Text style={jug.label}>Posición</Text>
+      <TouchableOpacity style={jug.picker} onPress={() => setShowPosPicker(true)}>
+        <Text style={jug.pickerText}>{form.posicion}</Text>
+        <MaterialCommunityIcons name="chevron-down" size={18} color="rgba(255,255,255,0.5)" />
+      </TouchableOpacity>
+
+      <Text style={jug.label}>Grupo</Text>
+      <TouchableOpacity style={jug.picker} onPress={() => setShowGrupoPicker(true)}>
+        <Text style={jug.pickerText}>Grupo {form.grupo}</Text>
+        <MaterialCommunityIcons name="chevron-down" size={18} color="rgba(255,255,255,0.5)" />
+      </TouchableOpacity>
+
+      {modo === 'editar' && (
+        <TouchableOpacity style={jug.activoRow} onPress={() => setForm(f => ({ ...f, activo: !f.activo }))}>
+          <Text style={jug.label}>Activo</Text>
+          <View style={[toggle.pill, form.activo ? toggle.pillOn : toggle.pillOff]}>
+            <View style={[toggle.knob, form.activo ? toggle.knobOn : toggle.knobOff]} />
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {msg && (
+        <Text style={[jug.msg, msg.tipo === 'ok' ? jug.msgOk : jug.msgErr]}>{msg.texto}</Text>
+      )}
+
+      <TouchableOpacity style={jug.saveBtn} onPress={guardar} disabled={saving}>
+        {saving ? <ActivityIndicator color="#1a2a5e" /> : <Text style={jug.saveBtnText}>GUARDAR</Text>}
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <MaterialCommunityIcons name="account-edit-outline" size={22} color="#FFEA00" />
+          <Text style={styles.cardTitle}>Jugadores</Text>
+        </View>
+
+        {modo === 'menu' && (
+          <View style={jug.menuRow}>
+            <TouchableOpacity style={jug.menuBtn} onPress={() => { setForm({ ...JUGADOR_VACIO }); setModo('crear'); setMsg(null); }}>
+              <MaterialCommunityIcons name="account-plus-outline" size={20} color="#FFEA00" />
+              <Text style={jug.menuBtnText}>Nuevo jugador</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={jug.menuBtn} onPress={() => { setBusqueda(''); setResultados([]); setModo('buscar'); }}>
+              <MaterialCommunityIcons name="magnify" size={20} color="#FFEA00" />
+              <Text style={jug.menuBtnText}>Editar jugador</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {modo === 'crear' && (
+          <>
+            <TouchableOpacity onPress={volver} style={jug.backRow}>
+              <MaterialCommunityIcons name="arrow-left" size={16} color="rgba(255,255,255,0.5)" />
+              <Text style={jug.backText}>Volver</Text>
+            </TouchableOpacity>
+            <Text style={jug.secTitle}>Nuevo jugador</Text>
+            <FormJugador />
+          </>
+        )}
+
+        {(modo === 'buscar' || modo === 'editar') && (
+          <>
+            <TouchableOpacity onPress={volver} style={jug.backRow}>
+              <MaterialCommunityIcons name="arrow-left" size={16} color="rgba(255,255,255,0.5)" />
+              <Text style={jug.backText}>Volver</Text>
+            </TouchableOpacity>
+
+            {modo === 'buscar' && (
+              <>
+                <TextInput
+                  style={jug.searchInput}
+                  value={busqueda}
+                  onChangeText={buscar}
+                  placeholder="Buscar por nombre o apellido..."
+                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  autoFocus
+                />
+                {buscando && <ActivityIndicator color="#FFEA00" style={{ marginVertical: 8 }} />}
+                {resultados.map(j => (
+                  <TouchableOpacity key={j.id} style={jug.resultRow} onPress={() => abrirEdicion(j)}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={jug.resultNombre}>{j.apellido}, {j.nombre}</Text>
+                      <Text style={jug.resultSub}>{j.posicion} · Grupo {j.grupo ?? '-'}</Text>
+                    </View>
+                    <View style={[jug.activoBadge, j.activo ? jug.activoBadgeOn : jug.activoBadgeOff]}>
+                      <Text style={jug.activoBadgeText}>{j.activo ? 'Activo' : 'Inactivo'}</Text>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={18} color="rgba(255,255,255,0.3)" />
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+
+            {modo === 'editar' && (
+              <>
+                <Text style={jug.secTitle}>Editar jugador #{editId}</Text>
+                <FormJugador />
+              </>
+            )}
+          </>
+        )}
+      </View>
+
+      {/* Modal posición */}
+      <Modal visible={showPosPicker} transparent animationType="slide">
+        <View style={jug.modalOverlay}>
+          <View style={jug.modalBox}>
+            <Text style={jug.modalTitle}>Seleccionar posición</Text>
+            {POSICIONES.map(p => (
+              <TouchableOpacity key={p} style={jug.modalOpt} onPress={() => { setForm(f => ({ ...f, posicion: p })); setShowPosPicker(false); }}>
+                <Text style={[jug.modalOptText, form.posicion === p && jug.modalOptSel]}>{p}</Text>
+                {form.posicion === p && <MaterialCommunityIcons name="check" size={16} color="#FFEA00" />}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={jug.modalCancel} onPress={() => setShowPosPicker(false)}>
+              <Text style={jug.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal grupo */}
+      <Modal visible={showGrupoPicker} transparent animationType="slide">
+        <View style={jug.modalOverlay}>
+          <View style={jug.modalBox}>
+            <Text style={jug.modalTitle}>Seleccionar grupo</Text>
+            {GRUPOS.map(g => (
+              <TouchableOpacity key={g} style={jug.modalOpt} onPress={() => { setForm(f => ({ ...f, grupo: g })); setShowGrupoPicker(false); }}>
+                <Text style={[jug.modalOptText, form.grupo === g && jug.modalOptSel]}>Grupo {g}</Text>
+                {form.grupo === g && <MaterialCommunityIcons name="check" size={16} color="#FFEA00" />}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={jug.modalCancel} onPress={() => setShowGrupoPicker(false)}>
+              <Text style={jug.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+};
+
+const toggle = StyleSheet.create({
+  pill: { width: 48, height: 28, borderRadius: 14, justifyContent: 'center', paddingHorizontal: 3 },
+  pillOn: { backgroundColor: '#FFEA00' },
+  pillOff: { backgroundColor: '#FF6B6B' },
+  knob: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
+  knobOn: { alignSelf: 'flex-end' },
+  knobOff: { alignSelf: 'flex-start' },
+});
+
+const jug = StyleSheet.create({
+  menuRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  menuBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: 'rgba(255,234,0,0.08)', borderRadius: 10,
+    borderWidth: 1, borderColor: 'rgba(255,234,0,0.2)',
+    paddingVertical: 14,
+  },
+  menuBtnText: { color: '#FFEA00', fontWeight: '700', fontSize: 13 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 },
+  backText: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
+  secTitle: { color: '#FFEA00', fontWeight: '900', fontSize: 13, letterSpacing: 1, marginBottom: 14 },
+  form: { gap: 4 },
+  label: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 4, marginTop: 8 },
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    color: '#fff', fontSize: 14, paddingHorizontal: 12, paddingVertical: 10,
+  },
+  picker: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  pickerText: { color: '#fff', fontSize: 14 },
+  activoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  msg: { fontSize: 13, marginTop: 10, textAlign: 'center' },
+  msgOk: { color: '#4CAF50' },
+  msgErr: { color: '#FF6B6B' },
+  saveBtn: {
+    backgroundColor: '#FFEA00', borderRadius: 10,
+    paddingVertical: 13, alignItems: 'center', marginTop: 16,
+  },
+  saveBtnText: { color: '#1a2a5e', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
+  searchInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    color: '#fff', fontSize: 14, paddingHorizontal: 12, paddingVertical: 10,
+    marginBottom: 8,
+  },
+  resultRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  resultNombre: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  resultSub: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
+  activoBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  activoBadgeOn: { backgroundColor: 'rgba(76,175,80,0.2)' },
+  activoBadgeOff: { backgroundColor: 'rgba(255,107,107,0.2)' },
+  activoBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalBox: {
+    backgroundColor: '#1a2a5e', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingTop: 16, paddingHorizontal: 16, paddingBottom: 30,
+  },
+  modalTitle: { color: '#FFEA00', fontSize: 15, fontWeight: '900', marginBottom: 12 },
+  modalOpt: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  modalOptText: { color: '#fff', fontSize: 14 },
+  modalOptSel: { color: '#FFEA00', fontWeight: '700' },
+  modalCancel: { marginTop: 12, alignItems: 'center', paddingVertical: 12 },
+  modalCancelText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
 });
