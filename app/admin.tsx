@@ -1441,6 +1441,7 @@ const JugadoresAdminCard = () => {
           posicion: form.posicion,
           grupo: form.grupo,
           activo: true,
+          equipoActual: 'Regatas',
         });
         if (error) throw error;
         setMsg({ tipo: 'ok', texto: 'Jugador creado.' });
