@@ -112,17 +112,13 @@ const MvpTab = ({
         <View style={mvp.headerLine} />
       </View>
 
-      {/* Layout: si hay dos 3/4 → forward arriba ancho completo, dos 3/4 abajo */}
+      {/* Layout: si hay dos 3/4 → tres tarjetas en la misma fila */}
       {mvpData?.trescuartos2 ? (
-        <>
-          <View style={mvp.cardsRowSingle}>
-            <MvpCard label="MVP FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
-          </View>
-          <View style={mvp.cardsRow}>
-            <MvpCard label="MVP 3/4" player={mvpData?.trescuartos  ?? null} fotoUri={mvpData?.trescuartos?.foto_url  ?? null} />
-            <MvpCard label="MVP 3/4" player={mvpData?.trescuartos2 ?? null} fotoUri={mvpData?.trescuartos2?.foto_url ?? null} />
-          </View>
-        </>
+        <View style={mvp.cardsRow}>
+          <MvpCard label="MVP FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
+          <MvpCard label="MVP 3/4" player={mvpData?.trescuartos  ?? null} fotoUri={mvpData?.trescuartos?.foto_url  ?? null} />
+          <MvpCard label="MVP 3/4" player={mvpData?.trescuartos2 ?? null} fotoUri={mvpData?.trescuartos2?.foto_url ?? null} />
+        </View>
       ) : (
         <View style={mvp.cardsRow}>
           <MvpCard label="MVP FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
