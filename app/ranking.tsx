@@ -38,16 +38,22 @@ export default function Ranking() {
         </View>
         <View>
           <Text style={styles.teamName}>{item.teamName}</Text>
-          <View style={styles.changeRow}>
-            <MaterialCommunityIcons 
-              name={item.change >= 0 ? "chevron-up" : "chevron-down"} 
-              size={16} 
-              color={item.change >= 0 ? "#4CAF50" : "#F44336"} 
-            />
-            <Text style={[styles.changeText, { color: item.change >= 0 ? "#4CAF50" : "#F44336" }]}>
-              {Math.abs(item.change)} posiciones
-            </Text>
-          </View>
+          {item.change === null ? (
+            <Text style={styles.changeNew}>NUEVO</Text>
+          ) : item.change === 0 ? (
+            <Text style={styles.changeEqual}>— Sin cambios</Text>
+          ) : (
+            <View style={styles.changeRow}>
+              <MaterialCommunityIcons
+                name={item.change > 0 ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={item.change > 0 ? '#4CAF50' : '#F44336'}
+              />
+              <Text style={[styles.changeText, { color: item.change > 0 ? '#4CAF50' : '#F44336' }]}>
+                {Math.abs(item.change)} {Math.abs(item.change) === 1 ? 'posición' : 'posiciones'}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -257,6 +263,8 @@ const styles = StyleSheet.create({
   teamName: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
   changeRow: { flexDirection: 'row', alignItems: 'center' },
   changeText: { fontSize: 10, fontWeight: 'bold', marginLeft: 2 },
+  changeEqual: { fontSize: 10, fontWeight: 'bold', color: 'rgba(255,255,255,0.3)' },
+  changeNew: { fontSize: 10, fontWeight: '900', color: '#FFEA00', letterSpacing: 0.5 },
   pointsBox: { alignItems: 'flex-end' },
   pointsVal: { color: '#FFEA00', fontSize: 16, fontWeight: '900' },
   pointsLbl: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 'bold' },
