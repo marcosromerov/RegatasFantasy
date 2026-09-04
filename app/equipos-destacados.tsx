@@ -112,13 +112,19 @@ const MvpTab = ({
         <View style={mvp.headerLine} />
       </View>
 
-      {/* Layout: si hay dos 3/4 → tres tarjetas en la misma fila */}
+      {/* Layout: si hay dos 3/4 → forward centrado arriba + dos 3/4 abajo */}
       {mvpData?.trescuartos2 ? (
-        <View style={mvp.cardsRow}>
-          <MvpCard label="MVP FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
-          <MvpCard label="MVP 3/4" player={mvpData?.trescuartos  ?? null} fotoUri={mvpData?.trescuartos?.foto_url  ?? null} />
-          <MvpCard label="MVP 3/4" player={mvpData?.trescuartos2 ?? null} fotoUri={mvpData?.trescuartos2?.foto_url ?? null} />
-        </View>
+        <>
+          <View style={mvp.cardsRowCenter}>
+            <View style={mvp.cardHalf}>
+              <MvpCard label="MVP FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
+            </View>
+          </View>
+          <View style={mvp.cardsRow}>
+            <MvpCard label="MVP 3/4" player={mvpData?.trescuartos  ?? null} fotoUri={mvpData?.trescuartos?.foto_url  ?? null} />
+            <MvpCard label="MVP 3/4" player={mvpData?.trescuartos2 ?? null} fotoUri={mvpData?.trescuartos2?.foto_url ?? null} />
+          </View>
+        </>
       ) : (
         <View style={mvp.cardsRow}>
           <MvpCard label="MVP FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
@@ -417,11 +423,13 @@ const mvp = StyleSheet.create({
   headerText: { color: '#FFEA00', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   cardsRow: { flexDirection: 'row', gap: 12 },
   cardsRowSingle: { flexDirection: 'row', marginBottom: 12 },
+  cardsRowCenter: { flexDirection: 'row', justifyContent: 'center', marginBottom: 12 },
+  cardHalf: { width: '48%' },
   card: { flex: 1, backgroundColor: '#0B1730', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,234,0,0.25)' },
   cardBar: { height: 4, backgroundColor: '#FFEA00' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
   labelText: { color: '#FFEA00', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  photoBox: { width: '100%', aspectRatio: 0.75, maxHeight: 220 },
+  photoBox: { width: '100%', aspectRatio: 0.75 },
   photo: { width: '100%', height: '100%' },
   photoPlaceholder: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)' },
   nameBox: { padding: 10, backgroundColor: '#1a2e5a' },
