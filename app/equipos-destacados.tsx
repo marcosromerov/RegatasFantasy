@@ -277,12 +277,12 @@ const Top5Tab = ({ equipos, jornada, hayDatos }: { equipos: TopEquipo[]; jornada
                   <View style={t5.potsRow}>
                     {eq.tieneForwardP && (
                       <View style={[t5.potBadge, { backgroundColor: 'rgba(255,234,0,0.15)' }]}>
-                        <Text style={t5.potBadgeText}>⚡ PACK ×1.5</Text>
+                        <Text style={t5.potBadgeText}>⚡ PACK ×2</Text>
                       </View>
                     )}
                     {eq.tieneBackA && (
                       <View style={[t5.potBadge, { backgroundColor: 'rgba(255,234,0,0.15)' }]}>
-                        <Text style={t5.potBadgeText}>⚡ LÍNEA ×1.5</Text>
+                        <Text style={t5.potBadgeText}>⚡ LÍNEA ×2</Text>
                       </View>
                     )}
                   </View>
