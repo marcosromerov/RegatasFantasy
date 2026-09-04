@@ -150,16 +150,32 @@ export const useCsvAdmin = (): UseCsvAdminReturn => {
       setError(null); setSuccessCount(null); setUploading(true);
 
       if (kind === 'puntuaciones') {
+        // Traer ids válidos para filtrar filas cuyo jugador_id no existe en la DB
+        const { data: jugadoresDB } = await supabase.from('jugadores').select('id');
+        const idsValidos = new Set((jugadoresDB ?? []).map((j: any) => Number(j.id)));
+        const rowsFiltradas = parsed.rows.filter(r => idsValidos.has(Number(r.jugador_id)));
+        const saltadas = parsed.rows.length - rowsFiltradas.length;
+
+        if (rowsFiltradas.length === 0) {
+          throw new Error(`Ningún jugador_id del CSV existe en la DB. Revisá que los IDs del Excel coincidan con la tabla jugadores.`);
+        }
+
         const { error: upsertError } = await supabase
           .from('rendimiento_jugador')
-          .upsert(parsed.rows, { onConflict: 'jugador_id,jornada' });
+          .upsert(rowsFiltradas, { onConflict: 'jugador_id,jornada' });
         if (upsertError) throw upsertError;
 
-        const jornadas = Array.from(new Set(parsed.rows.map((r) => Number(r.jornada))));
+        const jornadas = Array.from(new Set(rowsFiltradas.map((r) => Number(r.jornada))));
         for (const jornada of jornadas) {
           const { error: rpcError } = await supabase.rpc('recalcular_jornada', { p_jornada: jornada });
           if (rpcError) throw rpcError;
         }
+
+        // Mostrar cuántas se saltaron en el mensaje de éxito
+        setSuccessCount(rowsFiltradas.length);
+        if (saltadas > 0) setError(`⚠️ Se saltaron ${saltadas} filas cuyos jugador_id no existen en la DB.`);
+        setParsed(null);
+        return;
       } else if (kind === 'staff') {
         const { error: upsertError } = await supabase
           .from('staff_partidos')

@@ -132,6 +132,49 @@ export default function Admin() {
 // Subcomponente: card de gestión de MVPs
 // =========================================================
 
+// ── Slot de MVP reutilizable ─────────────────────────────────────────────────
+const MvpSlot = ({
+  slot, state, setter, label, onPickImage, onOpenPicker, slotLabel,
+}: {
+  slot: 'forward' | 'trescuartos' | 'trescuartos2';
+  state: any;
+  setter: (fn: (s: any) => any) => void;
+  label: string;
+  onPickImage: (s: any) => void;
+  onOpenPicker: () => void;
+  slotLabel: (s: any) => string;
+}) => (
+  <View style={mvpAdmin.slotBox}>
+    <Text style={mvpAdmin.slotTitle}>{label}</Text>
+    <View style={mvpAdmin.slotRow}>
+      <TouchableOpacity style={mvpAdmin.photoBox} onPress={() => onPickImage(slot)}>
+        {state.localUri ? (
+          <Image source={{ uri: state.localUri }} style={mvpAdmin.photoImg} />
+        ) : state.remoteUrl ? (
+          <Image source={{ uri: state.remoteUrl }} style={mvpAdmin.photoImg} />
+        ) : (
+          <MaterialCommunityIcons name="camera-plus-outline" size={28} color="rgba(255,234,0,0.5)" />
+        )}
+        {state.uploading && (
+          <View style={mvpAdmin.photoOverlay}><ActivityIndicator color="#fff" /></View>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity style={mvpAdmin.jugBtn} onPress={onOpenPicker}>
+        <MaterialCommunityIcons name="account-search-outline" size={16}
+          color={state.jugadorId ? '#FFEA00' : 'rgba(255,255,255,0.4)'} />
+        <Text style={[mvpAdmin.jugBtnText, state.jugadorId && mvpAdmin.jugBtnTextSel]} numberOfLines={2}>
+          {slotLabel(state)}
+        </Text>
+        {state.jugadorId && (
+          <TouchableOpacity onPress={() => setter((p: any) => ({ ...p, jugadorId: null, jugadorNombre: '' }))}>
+            <MaterialCommunityIcons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
 interface SlotState {
   jugadorId: number | null;
   jugadorNombre: string;
@@ -146,13 +189,15 @@ const MvpAdminCard = () => {
   const [jornada, setJornada]         = useState('');
   const [fwd, setFwd]                 = useState<SlotState>(EMPTY_SLOT);
   const [tq, setTq]                   = useState<SlotState>(EMPTY_SLOT);
+  const [tq2, setTq2]                 = useState<SlotState>(EMPTY_SLOT);
+  const [hayEmpate, setHayEmpate]     = useState(false);
   const [saving, setSaving]           = useState(false);
   const [error, setError]             = useState<string | null>(null);
   const [success, setSuccess]         = useState(false);
 
   // Buscador de jugadores
   const [jugadores, setJugadores]     = useState<{ id: number; nombre: string; apellido: string; posicion: string }[]>([]);
-  const [pickerSlot, setPickerSlot]   = useState<'forward' | 'trescuartos' | null>(null);
+  const [pickerSlot, setPickerSlot]   = useState<'forward' | 'trescuartos' | 'trescuartos2' | null>(null);
   const [search, setSearch]           = useState('');
 
   // Historial
@@ -172,7 +217,7 @@ const MvpAdminCard = () => {
       });
   }, []);
 
-  const pickImage = async (slot: 'forward' | 'trescuartos') => {
+  const pickImage = async (slot: 'forward' | 'trescuartos' | 'trescuartos2') => {
     if (!jornada) { setError('Ingresá el número de fecha primero.'); return; }
     setError(null);
 
@@ -191,13 +236,13 @@ const MvpAdminCard = () => {
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
 
-    const setter = slot === 'forward' ? setFwd : setTq;
+    const setter = slot === 'forward' ? setFwd : slot === 'trescuartos' ? setTq : setTq2;
     setter(prev => ({ ...prev, localUri: asset.uri, remoteUrl: null }));
   };
 
-  const uploadSlot = async (slot: 'forward' | 'trescuartos', state: SlotState): Promise<string | null> => {
+  const uploadSlot = async (slot: 'forward' | 'trescuartos' | 'trescuartos2', state: SlotState): Promise<string | null> => {
     if (!state.localUri) return state.remoteUrl;
-    const setter = slot === 'forward' ? setFwd : setTq;
+    const setter = slot === 'forward' ? setFwd : slot === 'trescuartos' ? setTq : setTq2;
     setter(prev => ({ ...prev, uploading: true }));
 
     try {
@@ -232,15 +277,18 @@ const MvpAdminCard = () => {
     if (!fwd.jugadorId && !tq.jugadorId) { setError('Seleccioná al menos un jugador.'); return; }
     setSaving(true); setError(null); setSuccess(false);
     try {
-      const fwdUrl = await uploadSlot('forward', fwd);
-      const tqUrl  = await uploadSlot('trescuartos', tq);
+      const fwdUrl  = await uploadSlot('forward', fwd);
+      const tqUrl   = await uploadSlot('trescuartos', tq);
+      const tq2Url  = hayEmpate ? await uploadSlot('trescuartos2', tq2) : null;
 
       const { error: dbErr } = await supabase.from('mvp_jornada').upsert({
         jornada: parseInt(jornada),
-        forward_jugador_id:       fwd.jugadorId ?? undefined,
-        forward_foto_url:         fwdUrl ?? undefined,
-        trescuartos_jugador_id:   tq.jugadorId ?? undefined,
-        trescuartos_foto_url:     tqUrl ?? undefined,
+        forward_jugador_id:        fwd.jugadorId ?? undefined,
+        forward_foto_url:          fwdUrl ?? undefined,
+        trescuartos_jugador_id:    tq.jugadorId ?? undefined,
+        trescuartos_foto_url:      tqUrl ?? undefined,
+        trescuartos2_jugador_id:   hayEmpate ? (tq2.jugadorId ?? undefined) : null,
+        trescuartos2_foto_url:     hayEmpate ? (tq2Url ?? undefined) : null,
       }, { onConflict: 'jornada' });
       if (dbErr) throw dbErr;
 
@@ -283,53 +331,38 @@ const MvpAdminCard = () => {
         placeholderTextColor="rgba(255,255,255,0.3)"
         keyboardType="numeric"
         value={jornada}
-        onChangeText={(t) => { setJornada(t); setFwd(EMPTY_SLOT); setTq(EMPTY_SLOT); setSuccess(false); }}
+        onChangeText={(t) => { setJornada(t); setFwd(EMPTY_SLOT); setTq(EMPTY_SLOT); setTq2(EMPTY_SLOT); setSuccess(false); }}
       />
 
       {/* Slots forward y 3/4 */}
-      {(['forward', 'trescuartos'] as const).map(slot => {
-        const state  = slot === 'forward' ? fwd : tq;
-        const setter = slot === 'forward' ? setFwd : setTq;
-        const label  = slot === 'forward' ? 'MVP FORWARD' : 'MVP 3/4';
-        return (
-          <View key={slot} style={mvpAdmin.slotBox}>
-            <Text style={mvpAdmin.slotTitle}>{label}</Text>
-            <View style={mvpAdmin.slotRow}>
-              {/* Foto preview / pick */}
-              <TouchableOpacity style={mvpAdmin.photoBox} onPress={() => pickImage(slot)}>
-                {state.localUri ? (
-                  <Image source={{ uri: state.localUri }} style={mvpAdmin.photoImg} />
-                ) : state.remoteUrl ? (
-                  <Image source={{ uri: state.remoteUrl }} style={mvpAdmin.photoImg} />
-                ) : (
-                  <MaterialCommunityIcons name="camera-plus-outline" size={28} color="rgba(255,234,0,0.5)" />
-                )}
-                {state.uploading && (
-                  <View style={mvpAdmin.photoOverlay}>
-                    <ActivityIndicator color="#fff" />
-                  </View>
-                )}
-              </TouchableOpacity>
+      {([
+        { slot: 'forward'      as const, state: fwd,  setter: setFwd,  label: 'MVP FORWARD' },
+        { slot: 'trescuartos'  as const, state: tq,   setter: setTq,   label: 'MVP 3/4' },
+      ]).map(({ slot, state, setter, label }) => (
+        <MvpSlot key={slot} slot={slot} state={state} setter={setter} label={label}
+          onPickImage={pickImage} onOpenPicker={() => { setPickerSlot(slot); setSearch(''); }}
+          slotLabel={slotLabel} />
+      ))}
 
-              {/* Jugador */}
-              <TouchableOpacity
-                style={mvpAdmin.jugBtn}
-                onPress={() => { setPickerSlot(slot); setSearch(''); }}
-              >
-                <MaterialCommunityIcons name="account-search-outline" size={16} color={state.jugadorId ? '#FFEA00' : 'rgba(255,255,255,0.4)'} />
-                <Text style={[mvpAdmin.jugBtnText, state.jugadorId && mvpAdmin.jugBtnTextSel]} numberOfLines={2}>
-                  {slotLabel(state)}
-                </Text>
-                {state.jugadorId && (
-                  <TouchableOpacity onPress={() => setter(prev => ({ ...prev, jugadorId: null, jugadorNombre: '' }))}>
-                    <MaterialCommunityIcons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
-                  </TouchableOpacity>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        );
-      })}
+      {/* Toggle empate 3/4 */}
+      <TouchableOpacity
+        style={mvpAdmin.empateRow}
+        onPress={() => { setHayEmpate(v => !v); if (hayEmpate) setTq2(EMPTY_SLOT); }}
+        activeOpacity={0.8}
+      >
+        <MaterialCommunityIcons
+          name={hayEmpate ? 'checkbox-marked' : 'checkbox-blank-outline'}
+          size={20}
+          color="#FFEA00"
+        />
+        <Text style={mvpAdmin.empateText}>Empate en 3/4 (agregar segundo MVP)</Text>
+      </TouchableOpacity>
+
+      {hayEmpate && (
+        <MvpSlot slot="trescuartos2" state={tq2} setter={setTq2} label="MVP 3/4 (empate)"
+          onPickImage={pickImage} onOpenPicker={() => { setPickerSlot('trescuartos2'); setSearch(''); }}
+          slotLabel={slotLabel} />
+      )}
 
       {/* Errores / éxito */}
       {error && (
@@ -388,7 +421,7 @@ const MvpAdminCard = () => {
           <View style={mvpAdmin.modalBox}>
             <View style={mvpAdmin.modalHeader}>
               <Text style={mvpAdmin.modalTitle}>
-                {pickerSlot === 'forward' ? 'Seleccionar Forward' : 'Seleccionar 3/4'}
+                {pickerSlot === 'forward' ? 'Seleccionar Forward' : 'Seleccionar 3/4'}{pickerSlot === 'trescuartos2' ? ' (empate)' : ''}
               </Text>
               <TouchableOpacity onPress={() => setPickerSlot(null)}>
                 <MaterialCommunityIcons name="close" size={22} color="#fff" />
@@ -409,7 +442,7 @@ const MvpAdminCard = () => {
                 <TouchableOpacity
                   style={mvpAdmin.jugRow}
                   onPress={() => {
-                    const setter = pickerSlot === 'forward' ? setFwd : setTq;
+                    const setter = pickerSlot === 'forward' ? setFwd : pickerSlot === 'trescuartos' ? setTq : setTq2;
                     setter(prev => ({ ...prev, jugadorId: item.id, jugadorNombre: `${item.nombre} ${item.apellido}` }));
                     setPickerSlot(null);
                   }}

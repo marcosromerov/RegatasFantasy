@@ -45,6 +45,7 @@ export interface MvpData {
   jornada: number;
   forward: MvpPlayer | null;
   trescuartos: MvpPlayer | null;
+  trescuartos2: MvpPlayer | null;
 }
 
 export interface MasElegido {
@@ -148,32 +149,25 @@ export const useEquiposDestacados = () => {
         const parseMvp = (row: any): MvpData => {
           const fwd = row.forward_jugador_id ? jugById.get(row.forward_jugador_id) : null;
           const tq  = row.trescuartos_jugador_id ? jugById.get(row.trescuartos_jugador_id) : null;
+          const tq2 = row.trescuartos2_jugador_id ? jugById.get(row.trescuartos2_jugador_id) : null;
+          const makePlayer = (jug: any, row_id: any, foto: string | null, extra: any): MvpPlayer | null => {
+            if (!foto && !row_id) return null;
+            return {
+              jugador_id: jug?.id ?? row_id ?? 0,
+              nombre:     jug?.nombre ?? '',
+              apellido:   jug?.apellido ?? '',
+              posicion:   jug?.posicion ?? '',
+              foto_url:   foto ?? null,
+              apodo:      extra?.apodo ?? null,
+              peso_kg:    extra?.peso_kg ?? null,
+              altura_cm:  extra?.altura_cm ?? null,
+            };
+          };
           return {
             jornada: row.jornada,
-            forward: row.forward_foto_url || row.forward_jugador_id
-              ? {
-                  jugador_id: fwd?.id ?? row.forward_jugador_id ?? 0,
-                  nombre:     fwd?.nombre ?? '',
-                  apellido:   fwd?.apellido ?? '',
-                  posicion:   fwd?.posicion ?? '',
-                  foto_url:   row.forward_foto_url ?? null,
-                  apodo:      row.forward_apodo ?? null,
-                  peso_kg:    row.forward_peso_kg ?? null,
-                  altura_cm:  row.forward_altura_cm ?? null,
-                }
-              : null,
-            trescuartos: row.trescuartos_foto_url || row.trescuartos_jugador_id
-              ? {
-                  jugador_id: tq?.id ?? row.trescuartos_jugador_id ?? 0,
-                  nombre:     tq?.nombre ?? '',
-                  apellido:   tq?.apellido ?? '',
-                  posicion:   tq?.posicion ?? '',
-                  foto_url:   row.trescuartos_foto_url ?? null,
-                  apodo:      row.trescuartos_apodo ?? null,
-                  peso_kg:    row.trescuartos_peso_kg ?? null,
-                  altura_cm:  row.trescuartos_altura_cm ?? null,
-                }
-              : null,
+            forward:      makePlayer(fwd, row.forward_jugador_id,       row.forward_foto_url,       { apodo: row.forward_apodo, peso_kg: row.forward_peso_kg, altura_cm: row.forward_altura_cm }),
+            trescuartos:  makePlayer(tq,  row.trescuartos_jugador_id,  row.trescuartos_foto_url,   { apodo: row.trescuartos_apodo, peso_kg: row.trescuartos_peso_kg, altura_cm: row.trescuartos_altura_cm }),
+            trescuartos2: makePlayer(tq2, row.trescuartos2_jugador_id, row.trescuartos2_foto_url,  {}),
           };
         };
 

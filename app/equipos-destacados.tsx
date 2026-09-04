@@ -111,10 +111,24 @@ const MvpTab = ({
         <MaterialCommunityIcons name="star-circle" size={18} color="#FFEA00" />
         <View style={mvp.headerLine} />
       </View>
-      <View style={mvp.cardsRow}>
-        <MvpCard label="MEJOR FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
-        <MvpCard label="MEJOR 3/4"     player={mvpData?.trescuartos ?? null} fotoUri={mvpData?.trescuartos?.foto_url ?? null} />
-      </View>
+
+      {/* Layout: si hay dos 3/4 → forward arriba ancho completo, dos 3/4 abajo */}
+      {mvpData?.trescuartos2 ? (
+        <>
+          <View style={mvp.cardsRowSingle}>
+            <MvpCard label="MVP FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
+          </View>
+          <View style={mvp.cardsRow}>
+            <MvpCard label="MVP 3/4" player={mvpData?.trescuartos  ?? null} fotoUri={mvpData?.trescuartos?.foto_url  ?? null} />
+            <MvpCard label="MVP 3/4" player={mvpData?.trescuartos2 ?? null} fotoUri={mvpData?.trescuartos2?.foto_url ?? null} />
+          </View>
+        </>
+      ) : (
+        <View style={mvp.cardsRow}>
+          <MvpCard label="MVP FORWARD" player={mvpData?.forward ?? null} fotoUri={mvpData?.forward?.foto_url ?? null} />
+          <MvpCard label="MVP 3/4"     player={mvpData?.trescuartos ?? null} fotoUri={mvpData?.trescuartos?.foto_url ?? null} />
+        </View>
+      )}
 
       {/* ── Historial ── */}
       {mvpHistory.length > 0 && (
@@ -406,6 +420,7 @@ const mvp = StyleSheet.create({
   headerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,234,0,0.3)' },
   headerText: { color: '#FFEA00', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
   cardsRow: { flexDirection: 'row', gap: 12 },
+  cardsRowSingle: { flexDirection: 'row', marginBottom: 12 },
   card: { flex: 1, backgroundColor: '#0B1730', borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,234,0,0.25)' },
   cardBar: { height: 4, backgroundColor: '#FFEA00' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
